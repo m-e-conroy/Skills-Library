@@ -30,6 +30,7 @@
     let flameParticles = [];
     let starColors = {};
     let starType = '';
+    let sunSize = 65; // Base sun size, will be varied
     let asteroidBelt = null;
     let shootingStars = [];
     let lastShootingStar = 0;
@@ -37,6 +38,13 @@
     let panelAnimProgress = 0;
     let panelAnimState = 'closed'; // 'opening', 'open', 'closing', 'closed'
     let targetPlanet = null;
+    let hoveredMoonIndex = -1;
+    let moonNamePositions = [];
+    let solarSystemName = '';
+    let selectedConstellation = null;
+    let constellationPanelAnimProgress = 0;
+    let constellationPanelAnimState = 'closed';
+    let hoveredStarIndex = -1;
 
     function generateConstellationName() {
       const prefixes = ['Astra', 'Nebul', 'Cosm', 'Stel', 'Lun', 'Cel', 'Vort', 'Nyx', 'Gal', 'Zeph'];
@@ -87,8 +95,91 @@
       return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
     }
 
+    function generateStarName() {
+      const prefixes = ['Al', 'Be', 'Si', 'Ri', 'Al', 'Den', 'Ras', 'Min', 'Sai', 'Reg'];
+      const middles = ['ta', 'ge', 'ri', 'de', 'pha', 'eb', 'al', 'ka', 'ul', 'ux'];
+      const suffixes = ['us', 'x', 'rix', 'min', 'tan', 'res', 'bor', 'gol', 'tar', 'ran'];
+      
+      let name = '';
+      
+      if (random() > 0.5) {
+        name = random(prefixes) + random(middles) + random(suffixes);
+      } else {
+        name = random(prefixes) + random(suffixes);
+      }
+      
+      return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    }
+
+    function generateMythology() {
+      const heroes = ['warrior', 'hunter', 'guardian', 'protector', 'hero', 'champion', 'defender', 'sentinel'];
+      const creatures = ['dragon', 'phoenix', 'serpent', 'lion', 'eagle', 'wolf', 'bear', 'stag'];
+      const actions = ['defeated', 'tamed', 'protected', 'saved', 'rescued', 'guided', 'defended', 'conquered'];
+      const places = ['kingdom', 'realm', 'land', 'world', 'empire', 'domain', 'territory', 'cosmos'];
+      const virtues = ['courage', 'wisdom', 'strength', 'honor', 'justice', 'compassion', 'loyalty', 'valor'];
+      
+      let mythology = '';
+      let mythType = int(random(3));
+      
+      if (mythType === 0) {
+        // Hero story
+        mythology = `Ancient tales speak of a legendary ${random(heroes)} who ${random(actions)} a great ${random(creatures)} that threatened the ${random(places)}. For their ${random(virtues)}, the gods immortalized them in the stars.`;
+      } else if (mythType === 1) {
+        // Creature story
+        mythology = `This constellation represents the mighty ${random(creatures)} that once ${random(actions)} the ${random(places)}. Its ${random(virtues)} was so great that it earned a place among the eternal stars.`;
+      } else {
+        // Divine story
+        mythology = `The ancient ${random(heroes)} was chosen by the gods to ${random(['guide', 'watch over', 'illuminate', 'protect'])} the ${random(places)}. Their ${random(virtues)} shines forever in the night sky.`;
+      }
+      
+      return mythology;
+    }
+
+    function getGoldilocksZone(starTypeName) {
+      // Calculate habitable zone based on star type
+      // Distances are in units matching our solar system scale
+      let zones = {
+        'Blue Giant': { inner: 200, outer: 350 },
+        'Yellow Star': { inner: 120, outer: 220 },
+        'Orange Star': { inner: 100, outer: 180 },
+        'Red Giant': { inner: 180, outer: 320 },
+        'White Dwarf': { inner: 50, outer: 100 }
+      };
+      return zones[starTypeName] || { inner: 120, outer: 220 };
+    }
+
+    function generateSolarSystemName() {
+      const prefixes = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Theta', 'Omega', 'Sigma', 'Nova'];
+      const middles = ['Centauri', 'Draconis', 'Orionis', 'Aquilae', 'Cygni', 'Lyrae', 'Aurigae', 'Persei', 'Andromedae', 'Phoenicis'];
+      const suffixes = ['Prime', 'Major', 'Minor', 'Secundus', 'Tertius', 'Alpha', 'Beta', 'One', 'Two', 'Three'];
+      
+      let name = '';
+      
+      // Random structure variations
+      let structure = int(random(4));
+      
+      if (structure === 0) {
+        // Prefix + Middle (e.g., "Alpha Centauri")
+        name = random(prefixes) + ' ' + random(middles);
+      } else if (structure === 1) {
+        // Prefix + Middle + Suffix (e.g., "Beta Draconis Prime")
+        name = random(prefixes) + ' ' + random(middles) + ' ' + random(suffixes);
+      } else if (structure === 2) {
+        // Middle + Suffix (e.g., "Orionis Major")
+        name = random(middles) + ' ' + random(suffixes);
+      } else {
+        // Just Middle (e.g., "Andromeda")
+        name = random(middles);
+      }
+      
+      return name + ' System';
+    }
+
     function setup() {
       createCanvas(windowWidth, windowHeight);
+      
+      // Generate solar system name
+      solarSystemName = generateSolarSystemName();
       
       // Randomly select star type and colors
       let starTypes = [
@@ -157,6 +248,19 @@
       let selectedStar = random(starTypes);
       starType = selectedStar.name;
       starColors = selectedStar;
+      
+      // Vary sun size based on star type and add randomness
+      if (starType === 'Blue Giant') {
+        sunSize = random(90, 120); // Larger
+      } else if (starType === 'Red Giant') {
+        sunSize = random(100, 140); // Largest
+      } else if (starType === 'White Dwarf') {
+        sunSize = random(30, 50); // Smallest
+      } else if (starType === 'Yellow Star') {
+        sunSize = random(55, 75); // Medium
+      } else if (starType === 'Orange Star') {
+        sunSize = random(60, 80); // Medium-large
+      }
       
       // Create starfield
       for (let i = 0; i < 500; i++) {
@@ -234,7 +338,8 @@
             x: centerX + random(-60, 60),  // Tighter clustering
             y: centerY + random(-60, 60),
             twinkle: random(TWO_PI),
-            twinkleSpeed: random(0.02, 0.05)
+            twinkleSpeed: random(0.02, 0.05),
+            name: generateStarName()
           });
         }
         
@@ -243,7 +348,8 @@
           name: generateConstellationName(),
           labelX: centerX,
           labelY: centerY - 80,
-          hovered: false
+          hovered: false,
+          mythology: generateMythology()
         });
       }
       
@@ -254,23 +360,53 @@
       
       // Create random number of planets (1-9) with random colors and properties
       let numPlanets = int(random(1, 10)); // 1 to 9 planets
-      let baseDistance = 80;
+      // Base distance must be far enough to not intersect the star (radius + glow)
+      let baseDistance = sunSize / 2 + 60; // Sun radius plus safe margin
       let distanceIncrement = 50;
       
       for (let i = 0; i < numPlanets; i++) {
         let distance = baseDistance + i * distanceIncrement + random(-15, 15);
-        let size = random(12, 50);
+        let planetSize = random(12, 50);
         let speed = random(0.002, 0.025) * (1 / (i + 1)); // Slower as distance increases
         let planetColor = color(random(50, 255), random(50, 255), random(50, 255));
         let ellipseRatioX = random(0.7, 1.4);
         let ellipseRatioY = random(0.7, 1.4);
         
-        planets.push(new Planet(distance, size, speed, planetColor, generatePlanetName(), ellipseRatioX, ellipseRatioY));
+        planets.push(new Planet(distance, planetSize, speed, planetColor, generatePlanetName(), ellipseRatioX, ellipseRatioY));
       }
       
       // Randomly add moons and rings to planets
       for (let planet of planets) {
         planet.randomizeFeatures();
+      }
+      
+      // Force at least one habitable planet based on system size
+      let shouldForceHabitable = false;
+      if (numPlanets >= 5) {
+        shouldForceHabitable = random() < 0.75; // 75% chance for 5+ planets
+      } else {
+        shouldForceHabitable = random() < 0.10; // 10% chance for <5 planets
+      }
+      
+      if (shouldForceHabitable && planets.length > 0) {
+        let goldilocksZone = getGoldilocksZone(starType);
+        
+        // Try to find a planet already in the Goldilocks zone
+        let candidatePlanets = planets.filter(p => 
+          p.distance >= goldilocksZone.inner && p.distance <= goldilocksZone.outer
+        );
+        
+        // If no planet in zone, pick a random one and move it there
+        if (candidatePlanets.length === 0) {
+          candidatePlanets = [random(planets)];
+          // Move it to the middle of Goldilocks zone
+          let targetDistance = (goldilocksZone.inner + goldilocksZone.outer) / 2;
+          candidatePlanets[0].distance = targetDistance;
+        }
+        
+        // Make one of these planets habitable
+        let habitablePlanet = random(candidatePlanets);
+        habitablePlanet.makeHabitable(goldilocksZone);
       }
       
       // 70% chance to have an asteroid belt
@@ -305,7 +441,20 @@
     }
     
     function mousePressed() {
-      // Check if close button was clicked
+      // Check if constellation panel close button was clicked
+      if (selectedConstellation !== null && (constellationPanelAnimState === 'open' || constellationPanelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let closeX = panelX + 260 - 40;
+        let closeY = 20;
+        let closeSize = 30;
+        if (mouseX > closeX && mouseX < closeX + closeSize && 
+            mouseY > closeY && mouseY < closeY + closeSize) {
+          constellationPanelAnimState = 'closing';
+          return;
+        }
+      }
+      
+      // Check if planet panel close button was clicked
       if (selectedPlanet !== null && (panelAnimState === 'open' || panelAnimState === 'opening')) {
         let panelX = width - 300;
         let closeX = panelX + 260 - 40;
@@ -327,6 +476,12 @@
       for (let planet of planets) {
         let d = dist(relMouseX, relMouseY, planet.x, planet.y);
         if (d < planet.size / 2) {
+          // Close constellation panel if open
+          if (selectedConstellation !== null) {
+            constellationPanelAnimState = 'closing';
+            selectedConstellation = null;
+          }
+          
           if (selectedPlanet !== planet) {
             if (panelAnimState === 'open') {
               // If panel is already open, just switch to the new planet (fade transition)
@@ -342,6 +497,47 @@
             }
           }
           return;
+        }
+      }
+      
+      // Check if constellation was clicked
+      for (let constellation of constellations) {
+        let d = dist(relMouseX, relMouseY, constellation.labelX, constellation.labelY);
+        if (d < 50) {
+          // Close planet panel if open
+          if (selectedPlanet !== null) {
+            panelAnimState = 'closing';
+            selectedPlanet = null;
+          }
+          
+          if (selectedConstellation !== constellation) {
+            if (constellationPanelAnimState === 'open') {
+              // If panel is already open, just switch to the new constellation (fade transition)
+              selectedConstellation = constellation;
+            } else if (constellationPanelAnimState === 'opening') {
+              // Still opening, switch target
+              selectedConstellation = constellation;
+            } else {
+              // Panel is closed, open it with the new constellation
+              selectedConstellation = constellation;
+              constellationPanelAnimState = 'opening';
+              constellationPanelAnimProgress = 0;
+            }
+          }
+          return;
+        }
+      }
+      
+      // Click outside deselects constellation
+      if (selectedConstellation !== null && (constellationPanelAnimState === 'open' || constellationPanelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let panelY = 20;
+        let panelWidth = 260;
+        let panelHeight = 680;
+        
+        if (mouseX < panelX || mouseX > panelX + panelWidth ||
+            mouseY < panelY || mouseY > panelY + panelHeight) {
+          constellationPanelAnimState = 'closing';
         }
       }
       
@@ -410,10 +606,30 @@
       
       pop();
       
+      // Draw solar system name in upper left corner
+      push();
+      fill(200, 220, 255, 180);
+      noStroke();
+      textAlign(LEFT, TOP);
+      textSize(24);
+      textFont('PT Sans');
+      text(solarSystemName, 30, 30);
+      
+      // Add subtle glow
+      fill(255, 255, 255, 100);
+      text(solarSystemName, 30, 30);
+      pop();
+      
       // Update and draw planet info panel animation
       updatePanelAnimation();
       if (panelAnimState !== 'closed') {
         drawPlanetInfoPanel();
+      }
+      
+      // Update and draw constellation info panel animation
+      updateConstellationPanelAnimation();
+      if (constellationPanelAnimState !== 'closed') {
+        drawConstellationInfoPanel();
       }
     }
     
@@ -436,6 +652,23 @@
             targetPlanet = null;
             panelAnimState = 'opening';
           }
+        }
+      }
+    }
+    
+    function updateConstellationPanelAnimation() {
+      if (constellationPanelAnimState === 'opening') {
+        constellationPanelAnimProgress += 0.08;
+        if (constellationPanelAnimProgress >= 1) {
+          constellationPanelAnimProgress = 1;
+          constellationPanelAnimState = 'open';
+        }
+      } else if (constellationPanelAnimState === 'closing') {
+        constellationPanelAnimProgress -= 0.08;
+        if (constellationPanelAnimProgress <= 0) {
+          constellationPanelAnimProgress = 0;
+          constellationPanelAnimState = 'closed';
+          selectedConstellation = null;
         }
       }
     }
@@ -495,8 +728,8 @@
       
       // Planet preview (larger visual with details) - drawn OUTSIDE clipping so moons/rings can overflow
       let previewX = panelX + panelWidth / 2;
-      let previewY = panelY + 110;
-      let previewSize = Math.min(selectedPlanet.size * 3.5, 120);
+      let previewY = panelY + 130;
+      let previewSize = Math.min(selectedPlanet.size * 3.5, 100);
       
       push();
       translate(previewX, previewY);
@@ -560,8 +793,18 @@
           strokeWeight(1);
           ellipse(0, 0, moonDist * 2, moonDist * 2);
           
-          // Moon
+          // Moon with hover highlight
           noStroke();
+          
+          // Highlight if this moon is hovered in the text
+          if (i === hoveredMoonIndex) {
+            // Bright highlight glow
+            fill(255, 220, 100, 180);
+            ellipse(moonX, moonY, moonSize + 8, moonSize + 8);
+            fill(255, 220, 100, 120);
+            ellipse(moonX, moonY, moonSize + 12, moonSize + 12);
+          }
+          
           fill(previewMoon.color);
           ellipse(moonX, moonY, moonSize, moonSize);
         }
@@ -589,7 +832,7 @@
       line(panelX + 20, panelY + 50, panelX + panelWidth - 20, panelY + 50);
       
       // Planet details
-      let detailY = panelY + 215;
+      let detailY = panelY + 260;
       let lineHeight = 20;
       textAlign(LEFT, TOP);
       textSize(11);
@@ -627,37 +870,66 @@
         text(selectedPlanet.moons.length, panelX + 20, detailY + 15);
         detailY += lineHeight * 2;
         
-        // Display moon names
-        fill(180, 180, 180);
+        // Display moon names with hover detection
+        moonNamePositions = [];
         textSize(10);
-        let moonNames = selectedPlanet.moons.map(m => m.name).join(", ");
-        // Wrap text if too long
-        if (moonNames.length > 30) {
-          let words = moonNames.split(", ");
-          let line = "";
-          for (let word of words) {
-            if ((line + word).length > 28) {
-              text(line.slice(0, -2), panelX + 20, detailY);
-              detailY += 15;
-              line = word + ", ";
-            } else {
-              line += word + ", ";
-            }
+        let moonNames = selectedPlanet.moons.map(m => m.name);
+        let currentX = panelX + 20;
+        let currentY = detailY;
+        let line = "";
+        let lineStartIndex = 0;
+        
+        for (let i = 0; i < moonNames.length; i++) {
+          let nameWithComma = moonNames[i] + (i < moonNames.length - 1 ? ", " : "");
+          
+          if ((line + nameWithComma).length > 28 && line.length > 0) {
+            // Draw current line
+            text(line.slice(0, -2), currentX, currentY);
+            currentY += 15;
+            line = nameWithComma;
+            lineStartIndex = i;
+          } else {
+            line += nameWithComma;
           }
-          if (line.length > 0) {
-            text(line.slice(0, -2), panelX + 20, detailY);
-            detailY += 15;
-          }
-        } else {
-          text(moonNames, panelX + 20, detailY);
-          detailY += 15;
+          
+          // Store moon name position for hover detection
+          let nameWidth = textWidth(moonNames[i]);
+          let xPos = currentX + textWidth(line) - textWidth(nameWithComma);
+          moonNamePositions.push({
+            x: xPos,
+            y: currentY - 3,
+            width: nameWidth,
+            height: 12,
+            index: i
+          });
         }
+        
+        // Draw remaining line
+        if (line.length > 0) {
+          text(line.slice(0, line.endsWith(", ") ? -2 : line.length), currentX, currentY);
+          currentY += 15;
+        }
+        
+        // Check for moon name hover and highlight
+        hoveredMoonIndex = -1;
+        for (let moonPos of moonNamePositions) {
+          if (mouseX >= moonPos.x && mouseX <= moonPos.x + moonPos.width &&
+              mouseY >= moonPos.y && mouseY <= moonPos.y + moonPos.height) {
+            hoveredMoonIndex = moonPos.index;
+            // Highlight hovered moon name
+            fill(255, 220, 100);
+            text(moonNames[moonPos.index], moonPos.x, moonPos.y + 3);
+          }
+        }
+        
+        detailY = currentY;
         textSize(11);
       } else {
         text("None", panelX + 20, detailY + 15);
         detailY += lineHeight * 2;
       }
       
+      detailY += 10; // Extra spacing before Ring System
       
       // Rings
       fill(150, 180, 255);
@@ -710,7 +982,320 @@
       textSize(10);
       text("Click outside panel to close", panelX + panelWidth/2, detailY);
       
+      // Habitability and life support symbols at bottom right
+      let symbolY = panelY + panelHeight - 50;
+      let symbolSize = 20;
+      let symbolX = panelX + panelWidth - 30;
+      
+      // Life support icon - always shown (grayed out if not applicable)
+      let supportsLife = selectedPlanet.supportsLife();
+      
+      // Icon with reduced opacity and grayscale when not supported
+      noStroke();
+      textAlign(CENTER, CENTER);
+      textSize(symbolSize);
+      
+      // Use globalAlpha and filter for graying out
+      if (supportsLife) {
+        drawingContext.globalAlpha = 1.0;
+        drawingContext.filter = 'none';
+      } else {
+        drawingContext.globalAlpha = 0.3;
+        drawingContext.filter = 'grayscale(100%)';
+      }
+      text('🌱', symbolX, symbolY);
+      drawingContext.globalAlpha = 1.0;
+      drawingContext.filter = 'none';
+      
+      // Tooltip-like label on hover
+      if (dist(mouseX, mouseY, symbolX, symbolY) < 14) {
+        if (supportsLife) {
+          fill(120, 255, 255, 240);
+        } else {
+          fill(150, 150, 150, 240);
+        }
+        textAlign(CENTER, BOTTOM);
+        textSize(10);
+        text(supportsLife ? 'Supports Life' : 'No Life Support', symbolX, symbolY - 20);
+      }
+      
+      symbolX -= 35;
+      
+      // Human habitable icon - always shown (grayed out if not applicable)
+      let isHabitable = selectedPlanet.isHumanHabitable();
+      
+      // Icon with reduced opacity and grayscale when not supported
+      noStroke();
+      textAlign(CENTER, CENTER);
+      textSize(symbolSize);
+      
+      // Use globalAlpha and filter for graying out
+      if (isHabitable) {
+        drawingContext.globalAlpha = 1.0;
+        drawingContext.filter = 'none';
+      } else {
+        drawingContext.globalAlpha = 0.3;
+        drawingContext.filter = 'grayscale(100%)';
+      }
+      text('👤', symbolX, symbolY);
+      drawingContext.globalAlpha = 1.0;
+      drawingContext.filter = 'none';
+      
+      // Tooltip-like label on hover
+      if (dist(mouseX, mouseY, symbolX, symbolY) < 14) {
+        if (isHabitable) {
+          fill(255, 220, 120, 240);
+        } else {
+          fill(150, 150, 150, 240);
+        }
+        textAlign(CENTER, BOTTOM);
+        textSize(10);
+        text(isHabitable ? 'Human Habitable' : 'Not Habitable', symbolX, symbolY - 20);
+      }
+      
+      textAlign(LEFT, TOP);
+      
       // Close button - drawn last so it's always on top
+      let closeX = panelX + panelWidth - 40;
+      let closeY = panelY + 10;
+      let closeSize = 30;
+      fill(150, 50, 50, 200 * easeProgress);
+      noStroke();
+      ellipse(closeX + closeSize/2, closeY + closeSize/2, closeSize, closeSize);
+      stroke(255, 255 * easeProgress);
+      strokeWeight(2);
+      line(closeX + 10, closeY + 10, closeX + 20, closeY + 20);
+      line(closeX + 20, closeY + 10, closeX + 10, closeY + 20);
+      
+      drawingContext.restore();
+      pop();
+    }
+    
+    function drawConstellationInfoPanel() {
+      if (!selectedConstellation) return;
+      
+      push();
+      
+      // Info panel background
+      let panelX = width - 300;
+      let panelY = 20;
+      let panelWidth = 260;
+      let panelHeight = 680;
+      
+      // Easing function for smooth animation
+      let easeProgress = constellationPanelAnimProgress * constellationPanelAnimProgress * (3 - 2 * constellationPanelAnimProgress);
+      
+      // Digital pixel block size effect
+      let pixelSize = 8;
+      let revealHeight = panelHeight * easeProgress;
+      
+      // Clip the panel background to animated height
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(panelX, panelY, panelWidth, revealHeight);
+      drawingContext.clip();
+      
+      // Panel shadow
+      fill(0, 0, 0, 100 * easeProgress);
+      rect(panelX + 5, panelY + 5, panelWidth, panelHeight, 10);
+      
+      // Panel background
+      fill(20, 25, 40, 240 * easeProgress);
+      rect(panelX, panelY, panelWidth, panelHeight, 10);
+      
+      // Panel border glow
+      noFill();
+      stroke(150, 150, 255, 150 * easeProgress);
+      strokeWeight(2);
+      rect(panelX, panelY, panelWidth, panelHeight, 10);
+      
+      drawingContext.restore();
+      
+      // Digital pixel reveal effect
+      if (constellationPanelAnimProgress < 1) {
+        noStroke();
+        for (let y = revealHeight; y < revealHeight + pixelSize * 3; y += pixelSize) {
+          for (let x = 0; x < panelWidth; x += pixelSize) {
+            if (random() > 0.3) {
+              fill(150, 150, 255, random(50, 150));
+              rect(panelX + x, panelY + y, pixelSize - 1, pixelSize - 1);
+            }
+          }
+        }
+      }
+      
+      // Clip for text content
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(panelX, panelY, panelWidth, revealHeight);
+      drawingContext.clip();
+      
+      // Constellation name title
+      fill(255);
+      noStroke();
+      textAlign(LEFT, TOP);
+      textSize(22);
+      textFont('PT Sans');
+      text(selectedConstellation.name, panelX + 20, panelY + 15);
+      
+      // Divider line
+      stroke(100, 100, 150, 100);
+      strokeWeight(1);
+      line(panelX + 20, panelY + 50, panelX + panelWidth - 20, panelY + 50);
+      
+      // Details
+      let detailY = panelY + 70;
+      let lineHeight = 20;
+      textAlign(LEFT, TOP);
+      textSize(11);
+      
+      // Number of stars
+      fill(150, 180, 255);
+      text("Stars in Constellation:", panelX + 20, detailY);
+      fill(255);
+      text(selectedConstellation.stars.length, panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 3;
+      
+      // Constellation close-up visualization
+      let vizBoxX = panelX + 20;
+      let vizBoxY = detailY;
+      let vizBoxWidth = panelWidth - 40;
+      let vizBoxHeight = 150;
+      
+      // Background for visualization
+      fill(10, 15, 30, 200);
+      stroke(100, 100, 150, 100);
+      strokeWeight(1);
+      rect(vizBoxX, vizBoxY, vizBoxWidth, vizBoxHeight, 5);
+      
+      // Calculate constellation bounds for centering
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (let star of selectedConstellation.stars) {
+        minX = min(minX, star.x);
+        maxX = max(maxX, star.x);
+        minY = min(minY, star.y);
+        maxY = max(maxY, star.y);
+      }
+      
+      let constellationWidth = maxX - minX;
+      let constellationHeight = maxY - minY;
+      let scaleX = (vizBoxWidth - 40) / constellationWidth;
+      let scaleY = (vizBoxHeight - 40) / constellationHeight;
+      let scale = min(scaleX, scaleY, 1.5); // Limit max scale
+      
+      let centerX = vizBoxX + vizBoxWidth / 2;
+      let centerY = vizBoxY + vizBoxHeight / 2;
+      let constellationCenterX = (minX + maxX) / 2;
+      let constellationCenterY = (minY + maxY) / 2;
+      
+      // Draw constellation lines
+      stroke(150, 150, 255, 120);
+      strokeWeight(1.5);
+      for (let i = 0; i < selectedConstellation.stars.length - 1; i++) {
+        let x1 = centerX + (selectedConstellation.stars[i].x - constellationCenterX) * scale;
+        let y1 = centerY + (selectedConstellation.stars[i].y - constellationCenterY) * scale;
+        let x2 = centerX + (selectedConstellation.stars[i + 1].x - constellationCenterX) * scale;
+        let y2 = centerY + (selectedConstellation.stars[i + 1].y - constellationCenterY) * scale;
+        line(x1, y1, x2, y2);
+      }
+      if (selectedConstellation.stars.length > 2) {
+        let x1 = centerX + (selectedConstellation.stars[selectedConstellation.stars.length - 1].x - constellationCenterX) * scale;
+        let y1 = centerY + (selectedConstellation.stars[selectedConstellation.stars.length - 1].y - constellationCenterY) * scale;
+        let x2 = centerX + (selectedConstellation.stars[0].x - constellationCenterX) * scale;
+        let y2 = centerY + (selectedConstellation.stars[0].y - constellationCenterY) * scale;
+        line(x1, y1, x2, y2);
+      }
+      
+      // Draw stars
+      noStroke();
+      for (let i = 0; i < selectedConstellation.stars.length; i++) {
+        let star = selectedConstellation.stars[i];
+        let x = centerX + (star.x - constellationCenterX) * scale;
+        let y = centerY + (star.y - constellationCenterY) * scale;
+        
+        // Highlight if this star is being hovered
+        if (i === hoveredStarIndex) {
+          // Glow effect
+          fill(255, 255, 150, 80);
+          ellipse(x, y, 16, 16);
+          fill(255, 255, 150, 150);
+          ellipse(x, y, 10, 10);
+          fill(255, 255, 200);
+          ellipse(x, y, 6, 6);
+        } else {
+          fill(200, 200, 255);
+          ellipse(x, y, 5, 5);
+        }
+      }
+      
+      detailY += vizBoxHeight + 15;
+      
+      // Star names section
+      fill(150, 180, 255);
+      text("Star Names:", panelX + 20, detailY);
+      detailY += lineHeight;
+      
+      fill(255);
+      textSize(10);
+      hoveredStarIndex = -1; // Reset hover state
+      for (let i = 0; i < selectedConstellation.stars.length; i++) {
+        let starName = selectedConstellation.stars[i].name;
+        let nameX = panelX + 25;
+        let nameY = detailY;
+        
+        // Check if mouse is hovering over this star name
+        let textBounds = textWidth(`• ${starName}`);
+        if (mouseX >= nameX && mouseX <= nameX + textBounds &&
+            mouseY >= nameY && mouseY <= nameY + 12) {
+          hoveredStarIndex = i;
+          fill(255, 255, 150); // Highlight text
+          cursor(HAND);
+        } else {
+          fill(255);
+        }
+        
+        text(`• ${starName}`, nameX, nameY);
+        detailY += 15;
+      }
+      
+      detailY += 10;
+      
+      // Mythology section
+      fill(150, 180, 255);
+      textSize(11);
+      text("Mythology:", panelX + 20, detailY);
+      detailY += lineHeight;
+      
+      fill(255);
+      textSize(10);
+      // Wrap mythology text
+      let words = selectedConstellation.mythology.split(' ');
+      let currentLine = '';
+      for (let word of words) {
+        let testLine = currentLine + word + ' ';
+        if (textWidth(testLine) > panelWidth - 50) {
+          text(currentLine, panelX + 20, detailY);
+          detailY += 14;
+          currentLine = word + ' ';
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine.length > 0) {
+        text(currentLine, panelX + 20, detailY);
+      }
+      
+      // Instruction text at bottom
+      detailY = panelY + panelHeight - 35;
+      fill(150, 150, 150);
+      textAlign(CENTER, TOP);
+      textSize(10);
+      text("Click outside panel to close", panelX + panelWidth/2, detailY);
+      
+      textAlign(LEFT, TOP);
+      
+      // Close button
       let closeX = panelX + panelWidth - 40;
       let closeY = panelY + 10;
       let closeSize = 30;
@@ -740,7 +1325,7 @@
       }
       
       // Outer glow layers with animation
-      for (let i = 100; i > 0; i -= 8) {
+      for (let i = sunSize * 1.5; i > 0; i -= 8) {
         let pulse = sin(frameCount * 0.05 + i * 0.1) * 10;
         fill(starColors.outer.r, starColors.outer.g, starColors.outer.b, 20);
         noStroke();
@@ -749,7 +1334,7 @@
       
       // Corona flares
       for (let a = 0; a < TWO_PI; a += PI / 4) {
-        let flareLength = 40 + sin(frameCount * 0.1 + a) * 15;
+        let flareLength = sunSize * 0.6 + sin(frameCount * 0.1 + a) * 15;
         let flareAngle = a + sin(frameCount * 0.05) * 0.2;
         push();
         rotate(flareAngle);
@@ -760,24 +1345,24 @@
       
       // Sun core with texture
       fill(starColors.core.r, starColors.core.g, starColors.core.b);
-      ellipse(0, 0, 65, 65);
+      ellipse(0, 0, sunSize, sunSize);
       
       // Middle layer
       fill(starColors.middle.r, starColors.middle.g, starColors.middle.b);
-      ellipse(0, 0, 55, 55);
+      ellipse(0, 0, sunSize * 0.85, sunSize * 0.85);
       
       // Hot core
       fill(starColors.hot.r, starColors.hot.g, starColors.hot.b);
-      ellipse(0, 0, 45, 45);
+      ellipse(0, 0, sunSize * 0.69, sunSize * 0.69);
       
       // Bright center
       fill(starColors.center.r, starColors.center.g, starColors.center.b, 200);
-      ellipse(0, 0, 30, 30);
+      ellipse(0, 0, sunSize * 0.46, sunSize * 0.46);
     }
     
     function createFlameParticle() {
       let angle = random(TWO_PI);
-      let radius = random(25, 35);
+      let radius = random(sunSize * 0.38, sunSize * 0.54);
       return {
         x: cos(angle) * radius,
         y: sin(angle) * radius,
@@ -1035,21 +1620,34 @@
         
         // Draw constellation stars with glow when hovered
         noStroke();
-        for (let star of constellation.stars) {
+        for (let i = 0; i < constellation.stars.length; i++) {
+          let star = constellation.stars[i];
           // Twinkle animation
           let twinkleBrightness = starBrightness + sin(star.twinkle) * 55;
           let twinkleSize = starSize * (0.8 + sin(star.twinkle) * 0.4);
           star.twinkle += star.twinkleSpeed;
           
-          if (constellation.hovered) {
+          // Check if this specific star is being hovered in the panel
+          let isStarHighlighted = (constellation === selectedConstellation && i === hoveredStarIndex);
+          
+          if (constellation.hovered || isStarHighlighted) {
             // Glow layers
             fill(200, 200, 255, 60);
             ellipse(star.x, star.y, twinkleSize + 8, twinkleSize + 8);
             fill(200, 200, 255, 100);
             ellipse(star.x, star.y, twinkleSize + 4, twinkleSize + 4);
           }
-          fill(twinkleBrightness, twinkleBrightness, 255);
-          ellipse(star.x, star.y, twinkleSize, twinkleSize);
+          
+          // Extra highlight for specific star hover
+          if (isStarHighlighted) {
+            fill(255, 255, 150, 100);
+            ellipse(star.x, star.y, twinkleSize + 12, twinkleSize + 12);
+            fill(255, 255, 200);
+            ellipse(star.x, star.y, twinkleSize + 2, twinkleSize + 2);
+          } else {
+            fill(twinkleBrightness, twinkleBrightness, 255);
+            ellipse(star.x, star.y, twinkleSize, twinkleSize);
+          }
         }
         
         // Draw constellation name - brighter when hovered
@@ -1232,6 +1830,80 @@
         let options = atmosphereOptions[this.type] || [['Unknown']];
         this.atmosphere = random(options);
       }
+      
+      isHumanHabitable() {
+        // Check temperature range suitable for humans
+        if (this.temperature < -20 || this.temperature > 50) return false;
+        
+        // Must be terrestrial or ocean planet
+        if (this.type !== 'Terrestrial' && this.type !== 'Ocean') return false;
+        
+        // Must have breathable atmosphere (contains O2)
+        let hasOxygen = this.atmosphere.some(gas => gas.includes('O2'));
+        if (!hasOxygen) return false;
+        
+        return true;
+      }
+      
+      supportsLife() {
+        // Broader criteria - any planet with atmosphere and reasonable temp
+        if (this.temperature < -150 || this.temperature > 300) return false;
+        
+        // Must have some atmosphere
+        if (this.atmosphere.length === 0 || this.atmosphere[0] === 'None') return false;
+        
+        // Gas giants and certain types less likely to support life
+        if (this.type === 'Gas Giant' || this.type === 'Hot Jupiter' || this.type === 'Super Jupiter') return false;
+        
+        return true;
+      }
+      
+      makeHabitable(goldilocksZone) {
+        // Ensure planet is in Goldilocks zone
+        if (this.distance < goldilocksZone.inner || this.distance > goldilocksZone.outer) {
+          this.distance = (goldilocksZone.inner + goldilocksZone.outer) / 2;
+        }
+        
+        // Set appropriate size for terrestrial planet (not too big)
+        if (this.size > 35) {
+          this.size = random(20, 35);
+        } else if (this.size < 15) {
+          this.size = random(15, 25);
+        }
+        
+        // Set habitable temperature
+        this.temperature = Math.round(random(-10, 30));
+        
+        // Set planet type to Terrestrial or Ocean
+        this.type = random() > 0.5 ? 'Terrestrial' : 'Ocean';
+        
+        // Set breathable atmosphere
+        this.atmosphere = random([['N2', 'O2'], ['N2', 'O2', 'Ar'], ['O2', 'N2']]);
+        
+        // Give it a nice blue/green color for Earth-like appearance
+        let colorChoice = random();
+        if (colorChoice < 0.4) {
+          // Blue (ocean world)
+          this.col = color(random(50, 120), random(120, 180), random(180, 255));
+        } else if (colorChoice < 0.7) {
+          // Green-blue (Earth-like)
+          this.col = color(random(80, 150), random(150, 200), random(120, 200));
+        } else {
+          // Green-brown (vegetation)
+          this.col = color(random(100, 160), random(140, 200), random(80, 140));
+        }
+        
+        // Regenerate surface details to match new color
+        this.surfaceDetails = [];
+        let numDetails = int(random(3, 7));
+        for (let i = 0; i < numDetails; i++) {
+          this.surfaceDetails.push({
+            x: random(-0.4, 0.4),
+            y: random(-0.4, 0.4),
+            size: random(0.15, 0.4)
+          });
+        }
+      }
 
       orbit() {
         this.angle += this.speed;
@@ -1259,11 +1931,25 @@
       display() {
         push();
         
-        // Draw irregular orbit path (brighter when hovered)
+        // Draw irregular orbit path (colored based on habitability)
         rotate(this.orbitRotation);
         noFill();
-        stroke(this.hovered ? 100 : 50);
-        strokeWeight(this.hovered ? 1.5 : 1);
+        
+        // Check if planet is habitable and set orbit color accordingly
+        if (this.isHumanHabitable()) {
+          // Gold orbit for habitable planets
+          stroke(255, 215, 0, this.hovered ? 200 : 120);
+          strokeWeight(this.hovered ? 2 : 1.5);
+        } else if (this.supportsLife()) {
+          // Green orbit for planets that support life but are not habitable
+          stroke(0, 255, 100, this.hovered ? 200 : 120);
+          strokeWeight(this.hovered ? 2 : 1.5);
+        } else {
+          // Default gray orbit
+          stroke(this.hovered ? 100 : 50);
+          strokeWeight(this.hovered ? 1.5 : 1);
+        }
+        
         ellipse(0, 0, this.distance * 2 * this.ellipseRatioX, this.distance * 2 * this.ellipseRatioY);
         
         pop();
