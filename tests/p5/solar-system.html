@@ -33,6 +33,10 @@
     let asteroidBelt = null;
     let shootingStars = [];
     let lastShootingStar = 0;
+    let selectedPlanet = null;
+    let panelAnimProgress = 0;
+    let panelAnimState = 'closed'; // 'opening', 'open', 'closing', 'closed'
+    let targetPlanet = null;
 
     function generateConstellationName() {
       const prefixes = ['Astra', 'Nebul', 'Cosm', 'Stel', 'Lun', 'Cel', 'Vort', 'Nyx', 'Gal', 'Zeph'];
@@ -65,6 +69,22 @@
       }
       
       return name.toUpperCase();
+    }
+
+    function generateMoonName() {
+      const prefixes = ['Lun', 'Pho', 'Dio', 'Tri', 'Cal', 'Eur', 'Gan', 'Titan', 'Rhea', 'Mim'];
+      const middles = ['a', 'o', 'i', 'e', 'u'];
+      const suffixes = ['s', 'x', 'n', 'r', 'l', 'th', 'os', 'us', 'is'];
+      
+      let name = '';
+      
+      if (random() > 0.3) {
+        name = random(prefixes) + random(middles) + random(suffixes);
+      } else {
+        name = random(prefixes) + random(suffixes);
+      }
+      
+      return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
     }
 
     function setup() {
@@ -283,6 +303,63 @@
     function windowResized() {
       resizeCanvas(windowWidth, windowHeight);
     }
+    
+    function mousePressed() {
+      // Check if close button was clicked
+      if (selectedPlanet !== null && (panelAnimState === 'open' || panelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let closeX = panelX + 260 - 40;
+        let closeY = 20;
+        let closeSize = 30;
+        if (mouseX > closeX && mouseX < closeX + closeSize && 
+            mouseY > closeY && mouseY < closeY + closeSize) {
+          panelAnimState = 'closing';
+          targetPlanet = null;
+          return;
+        }
+      }
+      
+      // Convert mouse position to world coordinates
+      let relMouseX = mouseX - width / 2;
+      let relMouseY = mouseY - height / 2;
+      
+      // Check if any planet was clicked
+      for (let planet of planets) {
+        let d = dist(relMouseX, relMouseY, planet.x, planet.y);
+        if (d < planet.size / 2) {
+          if (selectedPlanet !== planet) {
+            if (panelAnimState === 'open') {
+              // If panel is already open, just switch to the new planet (fade transition)
+              selectedPlanet = planet;
+            } else if (panelAnimState === 'opening') {
+              // Still opening, switch target
+              selectedPlanet = planet;
+            } else {
+              // Panel is closed, open it with the new planet
+              selectedPlanet = planet;
+              panelAnimState = 'opening';
+              panelAnimProgress = 0;
+            }
+          }
+          return;
+        }
+      }
+      
+      // Click outside deselects planet (only if not clicking on panel)
+      if (selectedPlanet !== null && (panelAnimState === 'open' || panelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let panelY = 20;
+        let panelWidth = 260;
+        let panelHeight = 680;
+        
+        // Don't deselect if clicking inside panel
+        if (mouseX < panelX || mouseX > panelX + panelWidth ||
+            mouseY < panelY || mouseY > panelY + panelHeight) {
+          panelAnimState = 'closing';
+          targetPlanet = null;
+        }
+      }
+    }
 
     function draw() {
       background(0);
@@ -308,6 +385,8 @@
       
       pop();
       
+      // Draw solar system (sun, asteroids, planets)
+      push();
       translate(width / 2, height / 2);
       
       // Draw blazing sun with flames
@@ -328,6 +407,323 @@
         planet.checkHover(relMouseX, relMouseY);
         planet.display();
       }
+      
+      pop();
+      
+      // Update and draw planet info panel animation
+      updatePanelAnimation();
+      if (panelAnimState !== 'closed') {
+        drawPlanetInfoPanel();
+      }
+    }
+    
+    function updatePanelAnimation() {
+      if (panelAnimState === 'opening') {
+        panelAnimProgress += 0.08;
+        if (panelAnimProgress >= 1) {
+          panelAnimProgress = 1;
+          panelAnimState = 'open';
+        }
+      } else if (panelAnimState === 'closing') {
+        panelAnimProgress -= 0.08;
+        if (panelAnimProgress <= 0) {
+          panelAnimProgress = 0;
+          panelAnimState = 'closed';
+          selectedPlanet = null;
+          // If there's a target planet, open it
+          if (targetPlanet !== null) {
+            selectedPlanet = targetPlanet;
+            targetPlanet = null;
+            panelAnimState = 'opening';
+          }
+        }
+      }
+    }
+    
+    function drawPlanetInfoPanel() {
+      if (!selectedPlanet) return;
+      
+      push();
+      
+      // Info panel background
+      let panelX = width - 300; // 20px margin from right edge
+      let panelY = 20;
+      let panelWidth = 260;
+      let panelHeight = 680; // Increased height to fit moon names
+      
+      // Easing function for smooth animation
+      let easeProgress = panelAnimProgress * panelAnimProgress * (3 - 2 * panelAnimProgress);
+      
+      // Digital pixel block size effect
+      let pixelSize = 8;
+      let revealHeight = panelHeight * easeProgress;
+      
+      // Clip the panel background to animated height (but not the preview)
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(panelX, panelY, panelWidth, revealHeight);
+      drawingContext.clip();
+      
+      // Panel shadow
+      fill(0, 0, 0, 100 * easeProgress);
+      rect(panelX + 5, panelY + 5, panelWidth, panelHeight, 10);
+      
+      // Panel background with gradient effect
+      fill(20, 25, 40, 240 * easeProgress);
+      rect(panelX, panelY, panelWidth, panelHeight, 10);
+      
+      // Panel border glow
+      noFill();
+      stroke(red(selectedPlanet.col), green(selectedPlanet.col), blue(selectedPlanet.col), 150 * easeProgress);
+      strokeWeight(2);
+      rect(panelX, panelY, panelWidth, panelHeight, 10);
+      
+      drawingContext.restore();
+      
+      // Digital pixel reveal effect (outside clip)
+      if (panelAnimProgress < 1) {
+        noStroke();
+        for (let y = revealHeight; y < revealHeight + pixelSize * 3; y += pixelSize) {
+          for (let x = 0; x < panelWidth; x += pixelSize) {
+            if (random() > 0.3) {
+              fill(red(selectedPlanet.col), green(selectedPlanet.col), blue(selectedPlanet.col), random(50, 150));
+              rect(panelX + x, panelY + y, pixelSize - 1, pixelSize - 1);
+            }
+          }
+        }
+      }
+      
+      // Planet preview (larger visual with details) - drawn OUTSIDE clipping so moons/rings can overflow
+      let previewX = panelX + panelWidth / 2;
+      let previewY = panelY + 110;
+      let previewSize = Math.min(selectedPlanet.size * 3.5, 120);
+      
+      push();
+      translate(previewX, previewY);
+      
+      // Draw rings behind planet if it has them
+      if (selectedPlanet.hasRings) {
+        for (let ring of selectedPlanet.rings) {
+          push();
+          rotate(ring.rotation);
+          noFill();
+          let scaleFactor = previewSize / selectedPlanet.size;
+          let innerR = ring.innerRadius * scaleFactor;
+          let outerR = ring.outerRadius * scaleFactor;
+          stroke(red(ring.color), green(ring.color), blue(ring.color), ring.opacity * 1.5);
+          strokeWeight((outerR - innerR));
+          ellipse(0, 0, innerR * 2, innerR * 2);
+          pop();
+        }
+      }
+      
+      // Preview glow
+      noStroke();
+      for (let i = 5; i > 0; i--) {
+        fill(red(selectedPlanet.col), green(selectedPlanet.col), blue(selectedPlanet.col), 50 / i);
+        ellipse(0, 0, previewSize + i * 20, previewSize + i * 20);
+      }
+      
+      // Preview planet
+      fill(selectedPlanet.col);
+      ellipse(0, 0, previewSize, previewSize);
+      
+      // Add randomized surface details
+      fill(red(selectedPlanet.col) * 0.7, green(selectedPlanet.col) * 0.7, blue(selectedPlanet.col) * 0.7, 120);
+      for (let detail of selectedPlanet.surfaceDetails) {
+        ellipse(detail.x * previewSize, detail.y * previewSize, detail.size * previewSize, detail.size * previewSize);
+      }
+      
+      // Add atmospheric glow
+      noFill();
+      stroke(red(selectedPlanet.col), green(selectedPlanet.col), blue(selectedPlanet.col), 80);
+      strokeWeight(3);
+      ellipse(0, 0, previewSize + 8, previewSize + 8);
+      
+      // Draw preview moons if it has them - show all moons
+      if (selectedPlanet.moons.length > 0) {
+        let scaleFactor = previewSize / selectedPlanet.size;
+        
+        for (let i = 0; i < selectedPlanet.moons.length; i++) {
+          let previewMoon = selectedPlanet.moons[i];
+          let moonDist = previewMoon.distance * scaleFactor * 0.7;
+          
+          // Use the moon's actual angle from the main view
+          let moonAngle = previewMoon.angle;
+          let moonX = cos(moonAngle) * moonDist;
+          let moonY = sin(moonAngle) * moonDist;
+          let moonSize = previewMoon.size * scaleFactor * 1.5;
+          
+          // Moon orbit
+          noFill();
+          stroke(100, 100, 120, 80);
+          strokeWeight(1);
+          ellipse(0, 0, moonDist * 2, moonDist * 2);
+          
+          // Moon
+          noStroke();
+          fill(previewMoon.color);
+          ellipse(moonX, moonY, moonSize, moonSize);
+        }
+      }
+      
+      pop();
+      
+      // Clip for text content only
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(panelX, panelY, panelWidth, revealHeight);
+      drawingContext.clip();
+      
+      // Planet name title
+      fill(255);
+      noStroke();
+      textAlign(LEFT, TOP);
+      textSize(22);
+      textFont('PT Sans');
+      text(selectedPlanet.name, panelX + 20, panelY + 15);
+      
+      // Divider line
+      stroke(100, 100, 150, 100);
+      strokeWeight(1);
+      line(panelX + 20, panelY + 50, panelX + panelWidth - 20, panelY + 50);
+      
+      // Planet details
+      let detailY = panelY + 215;
+      let lineHeight = 20;
+      textAlign(LEFT, TOP);
+      textSize(11);
+      
+      // Distance from sun
+      fill(150, 180, 255);
+      text("Distance from Star:", panelX + 20, detailY);
+      fill(255);
+      text(Math.round(selectedPlanet.distance) + " units", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Size
+      fill(150, 180, 255);
+      text("Diameter:", panelX + 20, detailY);
+      fill(255);
+      text(Math.round(selectedPlanet.size) + " units", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Orbital period (simplified)
+      fill(150, 180, 255);
+      text("Orbital Period:", panelX + 20, detailY);
+      fill(255);
+      let period = Math.round(TWO_PI / selectedPlanet.speed);
+      text(period + " frames", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Moons
+      fill(150, 180, 255);
+      text("Moons:", panelX + 20, detailY);
+      fill(255);
+      if (selectedPlanet.moons.length > 0) {
+        text(selectedPlanet.moons.length, panelX + 20, detailY + 15);
+        detailY += lineHeight * 2;
+        
+        // Display moon names
+        fill(180, 180, 180);
+        textSize(10);
+        let moonNames = selectedPlanet.moons.map(m => m.name).join(", ");
+        // Wrap text if too long
+        if (moonNames.length > 30) {
+          let words = moonNames.split(", ");
+          let line = "";
+          for (let word of words) {
+            if ((line + word).length > 28) {
+              text(line.slice(0, -2), panelX + 20, detailY);
+              detailY += 15;
+              line = word + ", ";
+            } else {
+              line += word + ", ";
+            }
+          }
+          if (line.length > 0) {
+            text(line.slice(0, -2), panelX + 20, detailY);
+            detailY += 15;
+          }
+        } else {
+          text(moonNames, panelX + 20, detailY);
+          detailY += 15;
+        }
+        textSize(11);
+      } else {
+        text("None", panelX + 20, detailY + 15);
+        detailY += lineHeight * 2;
+      }
+      
+      
+      // Rings
+      fill(150, 180, 255);
+      text("Ring System:", panelX + 20, detailY);
+      fill(255);
+      text(selectedPlanet.hasRings ? "Yes (" + selectedPlanet.rings.length + " rings)" : "None", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Orbit eccentricity
+      fill(150, 180, 255);
+      text("Orbit Shape:", panelX + 20, detailY);
+      fill(255);
+      let eccent = Math.abs(selectedPlanet.ellipseRatioX - selectedPlanet.ellipseRatioY).toFixed(2);
+      let shape = eccent < 0.2 ? "Nearly Circular" : eccent < 0.5 ? "Elliptical" : "Highly Elliptical";
+      text(shape, panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Planet type
+      fill(150, 180, 255);
+      text("Planet Type:", panelX + 20, detailY);
+      fill(255);
+      text(selectedPlanet.type, panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Surface temperature
+      fill(150, 180, 255);
+      text("Surface Temp:", panelX + 20, detailY);
+      fill(255);
+      text(selectedPlanet.temperature + "°C", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Atmosphere
+      fill(150, 180, 255);
+      text("Atmosphere:", panelX + 20, detailY);
+      fill(255);
+      let atmoText = selectedPlanet.atmosphere.join(", ");
+      if (atmoText.length > 25) {
+        atmoText = atmoText.substring(0, 22) + "...";
+      }
+      text(atmoText, panelX + 20, detailY + 15);
+      
+      // Instruction text at bottom
+      detailY = panelY + panelHeight - 35;
+      fill(150, 150, 150);
+      textAlign(CENTER, TOP);
+      textSize(10);
+      text("Click outside panel to close", panelX + panelWidth/2, detailY);
+      
+      // Close button - drawn last so it's always on top
+      let closeX = panelX + panelWidth - 40;
+      let closeY = panelY + 10;
+      let closeSize = 30;
+      fill(150, 50, 50, 200 * easeProgress);
+      noStroke();
+      ellipse(closeX + closeSize/2, closeY + closeSize/2, closeSize, closeSize);
+      stroke(255, 255 * easeProgress);
+      strokeWeight(2);
+      line(closeX + 10, closeY + 10, closeX + 20, closeY + 20);
+      line(closeX + 20, closeY + 10, closeX + 10, closeY + 20);
+      
+      drawingContext.restore();
+      pop();
     }
 
     function drawSun() {
@@ -729,6 +1125,12 @@
         this.hovered = false;
         this.x = 0;
         this.y = 0;
+        
+        // Planet characteristics
+        this.surfaceDetails = [];
+        this.temperature = 0;
+        this.type = '';
+        this.atmosphere = [];
       }
       
       randomizeFeatures() {
@@ -741,7 +1143,8 @@
               size: random(2, 5),
               speed: random(0.02, 0.08) * (random() > 0.5 ? 1 : -1),
               angle: random(TWO_PI),
-              color: color(random(150, 220), random(150, 220), random(150, 220))
+              color: color(random(150, 220), random(150, 220), random(150, 220)),
+              name: generateMoonName()
             });
           }
         }
@@ -760,6 +1163,74 @@
             });
           }
         }
+        
+        // Generate random surface details (craters/features)
+        let numDetails = int(random(3, 7));
+        for (let i = 0; i < numDetails; i++) {
+          this.surfaceDetails.push({
+            x: random(-0.4, 0.4),
+            y: random(-0.4, 0.4),
+            size: random(0.15, 0.4)
+          });
+        }
+        
+        // Generate temperature based on distance from sun
+        let baseTempFromDistance = map(this.distance, 80, 450, 800, -200);
+        this.temperature = Math.round(baseTempFromDistance + random(-100, 100));
+        
+        // Determine planet type based on size AND temperature
+        let types = [];
+        if (this.size < 20) {
+          // Small planets
+          if (this.temperature > 400) {
+            types = ['Rocky', 'Desert', 'Volcanic'];
+          } else if (this.temperature > 100) {
+            types = ['Rocky', 'Terrestrial', 'Desert'];
+          } else if (this.temperature > -50) {
+            types = ['Terrestrial', 'Rocky'];
+          } else {
+            types = ['Ice', 'Dwarf', 'Frozen'];
+          }
+        } else if (this.size < 35) {
+          // Medium planets
+          if (this.temperature > 400) {
+            types = ['Rocky', 'Desert', 'Volcanic'];
+          } else if (this.temperature > 100) {
+            types = ['Terrestrial', 'Rocky'];
+          } else if (this.temperature > -50) {
+            types = ['Terrestrial', 'Ocean'];
+          } else {
+            types = ['Ice', 'Frozen Ocean'];
+          }
+        } else {
+          // Large planets (gas/ice giants)
+          if (this.temperature > 0) {
+            types = ['Gas Giant', 'Hot Jupiter'];
+          } else {
+            types = ['Gas Giant', 'Ice Giant', 'Super Jupiter'];
+          }
+        }
+        this.type = random(types);
+        
+        // Generate atmosphere based on planet type
+        let atmosphereOptions = {
+          'Rocky': [['None'], ['Trace CO2'], ['Thin CO2']],
+          'Dwarf': [['None'], ['Trace Methane']],
+          'Terrestrial': [['N2', 'O2'], ['CO2', 'N2'], ['N2', 'O2', 'Ar']],
+          'Desert': [['Thin CO2'], ['None'], ['CO2', 'Dust']],
+          'Volcanic': [['SO2', 'CO2'], ['Sulfur', 'Ash']],
+          'Ocean': [['H2O', 'N2', 'O2'], ['Dense H2O', 'O2']],
+          'Ice': [['N2', 'Methane'], ['Frozen H2O', 'N2']],
+          'Frozen': [['Frozen CO2'], ['N2', 'Methane']],
+          'Frozen Ocean': [['Frozen H2O', 'N2'], ['Ice', 'N2']],
+          'Gas Giant': [['H2', 'He', 'Methane'], ['H2', 'He', 'Ammonia'], ['H2', 'He']],
+          'Ice Giant': [['H2', 'He', 'Methane'], ['H2', 'Water', 'Ammonia']],
+          'Hot Jupiter': [['H2', 'He'], ['H2', 'He', 'Metals']],
+          'Super Jupiter': [['H2', 'He'], ['H2', 'He', 'Trace Metals']]
+        };
+        
+        let options = atmosphereOptions[this.type] || [['Unknown']];
+        this.atmosphere = random(options);
       }
 
       orbit() {
