@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DNA Double Helix</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: rgb(10, 10, 20);
+    }
+  </style>
+</head>
+<body>
+  <script>
+    let angle = 0;
+    let helixPoints = [];
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      colorMode(RGB);
+    }
+    
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+    
+    function draw() {
+      background(10, 10, 20);
+      
+      rotateY(angle * 0.3);
+      rotateX(sin(angle * 0.2) * 0.2);
+      
+      let numPoints = 80;
+      
+      // Simple global lighting setup (more efficient)
+      ambientLight(50);
+      pointLight(200, 150, 255, 0, 0, 0);
+      
+      // Enable additive blending for glow effect
+      blendMode(ADD);
+      
+      for (let i = 0; i < numPoints; i++) {
+        let z = map(i, 0, numPoints, -300, 300);
+        let spiralAngle = angle + i * 0.3;
+        
+        // Strand positions
+        let x1 = cos(spiralAngle) * 80;
+        let y1 = sin(spiralAngle) * 80;
+        let x2 = cos(spiralAngle + PI) * 80;
+        let y2 = sin(spiralAngle + PI) * 80;
+        
+        // Color gradient
+        let colorMix = map(i, 0, numPoints, 0, 1);
+        let r1 = lerp(128, 255, colorMix);
+        let g1 = lerp(0, 100, colorMix);
+        let b1 = lerp(255, 150, colorMix);
+        
+        // Draw strand spheres
+        push();
+        translate(x1, y1, z);
+        ambientMaterial(r1, g1, b1);
+        sphere(6);
+        pop();
+        
+        push();
+        translate(x2, y2, z);
+        ambientMaterial(r1, g1, b1);
+        sphere(6);
+        pop();
+        
+        // Draw connecting strands (every 4 points for performance)
+        if (i % 4 === 0) {
+          // Vibration effect
+          let vibration1 = noise(i * 0.2, angle * 2) * 10 - 5;
+          let vibration2 = noise(i * 0.2 + 100, angle * 2) * 10 - 5;
+          let pulse = sin(angle * 3 + i * 0.5) * 0.5 + 0.5;
+          
+          // Reduced layers for performance (3 instead of 5)
+          for (let layer = 0; layer < 3; layer++) {
+            let alpha = map(layer, 0, 3, 100, 15);
+            let weight = map(layer, 0, 3, 1, 3.5);
+            let offset = layer * 0.4;
+            
+            // Reduced segments (5 instead of 10)
+            let steps = 5;
+            for (let s = 0; s < steps - 1; s++) {
+              let t1 = s / steps;
+              let t2 = (s + 1) / steps;
+              
+              // Vibration
+              let vib1 = sin(angle * 4 + i * 0.3 + s * 0.5) * 3 * pulse;
+              let vib2 = cos(angle * 4 + i * 0.3 + s * 0.5) * 3 * pulse;
+              
+              let px1 = lerp(x1, x2, t1) + vibration1 * t1 * (1 - t1) + vib1 * offset;
+              let py1 = lerp(y1, y2, t1) + vibration2 * t1 * (1 - t1) + vib2 * offset;
+              let pz1 = z + offset;
+              
+              let px2 = lerp(x1, x2, t2) + vibration1 * t2 * (1 - t2) + vib1 * offset;
+              let py2 = lerp(y1, y2, t2) + vibration2 * t2 * (1 - t2) + vib2 * offset;
+              let pz2 = z + offset;
+              
+              // Glow color
+              let glowR = lerp(80, 200, pulse) + layer * 15;
+              let glowG = lerp(150, 255, pulse) + layer * 15;
+              let glowB = lerp(255, 200, pulse);
+              
+              stroke(glowR, glowG, glowB, alpha);
+              strokeWeight(weight);
+              line(px1, py1, pz1, px2, py2, pz2);
+            }
+          }
+          noStroke();
+        }
+      }
+      
+      blendMode(BLEND);
+      angle += 0.02;
+    }
+  </script>
+</body>
+</html>

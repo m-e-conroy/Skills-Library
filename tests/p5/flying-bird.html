@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flying Bird Animation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    body {
+      background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+    
+    // Array to hold multiple birds
+    const birds = [];
+    
+    // Color palettes for birds
+    const birdColors = [
+      { body: '#FF6B35', wing: '#FF8C42' },  // Orange
+      { body: '#4ECDC4', wing: '#45B7AA' },  // Teal
+      { body: '#FFE66D', wing: '#FFD93D' },  // Yellow
+      { body: '#6A4C93', wing: '#8968AC' },  // Purple
+      { body: '#FF6B6B', wing: '#EE5A52' },  // Red
+      { body: '#95E1D3', wing: '#7FCCC1' },  // Mint
+      { body: '#F38181', wing: '#E06C6C' },  // Pink
+      { body: '#5FA8D3', wing: '#4A90C5' }   // Blue
+    ];
+    
+    function createBird() {
+      const colors = birdColors[Math.floor(Math.random() * birdColors.length)];
+      return {
+        x: -50,
+        y: Math.random() * canvas.height,
+        speed: 2 + Math.random() * 2,
+        wingAngle: 0,
+        wingSpeed: 0.08 + Math.random() * 0.04,
+        bodyColor: colors.body,
+        wingColor: colors.wing,
+        size: 0.8 + Math.random() * 0.4
+      };
+    }
+    
+    // Start with 2-4 birds
+    for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) {
+      const bird = createBird();
+      bird.x = Math.random() * canvas.width;
+      birds.push(bird);
+    }
+    
+    // Periodically add or remove birds
+    setInterval(() => {
+      const action = Math.random();
+      
+      if (action < 0.4 && birds.length < 8) {
+        // Add a bird (40% chance if less than 8 birds)
+        birds.push(createBird());
+      } else if (action > 0.7 && birds.length > 1) {
+        // Remove a random bird (30% chance if more than 1 bird)
+        const index = Math.floor(Math.random() * birds.length);
+        birds.splice(index, 1);
+      }
+    }, 3000); // Check every 3 seconds
+    
+    // Randomly change bird colors mid-flight
+    setInterval(() => {
+      if (birds.length > 0) {
+        // Pick a random bird
+        const bird = birds[Math.floor(Math.random() * birds.length)];
+        // Give it a new random color
+        const colors = birdColors[Math.floor(Math.random() * birdColors.length)];
+        bird.bodyColor = colors.body;
+        bird.wingColor = colors.wing;
+      }
+    }, 2000); // Change a bird's color every 2 seconds
+    
+    function drawBird(bird) {
+      ctx.save();
+      ctx.translate(bird.x, bird.y);
+      ctx.scale(bird.size, bird.size);
+      
+      // Body
+      ctx.fillStyle = bird.bodyColor;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 15, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Wings
+      ctx.fillStyle = bird.wingColor;
+      ctx.beginPath();
+      ctx.ellipse(-5, -5, 20, 8, bird.wingAngle, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(-5, 5, 20, 8, -bird.wingAngle, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.restore();
+    }
+    
+    function animate() {
+      // Fade effect for trails
+      ctx.fillStyle = 'rgba(135, 206, 235, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Update and draw all birds
+      for (let i = birds.length - 1; i >= 0; i--) {
+        const bird = birds[i];
+        
+        // Update bird position
+        bird.x += bird.speed;
+        bird.y += Math.sin(bird.x * 0.02) * 2;
+        bird.wingAngle = Math.sin(bird.x * bird.wingSpeed) * 0.5;
+        
+        // Reset when off screen
+        if (bird.x > canvas.width + 50) {
+          bird.x = -50;
+          bird.y = Math.random() * canvas.height;
+        }
+        
+        drawBird(bird);
+      }
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+  </script>
+</body>
+</html>

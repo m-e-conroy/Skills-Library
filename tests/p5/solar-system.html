@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solar System with p5.js</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    let angle = 0;
+    let planets = [];
+    let stars = [];
+    let nebulas = [];
+    let constellations = [];
+    let flameParticles = [];
+    let starColors = {};
+    let starType = '';
+    let asteroidBelt = null;
+    let shootingStars = [];
+    let lastShootingStar = 0;
+
+    function generateConstellationName() {
+      const prefixes = ['Astra', 'Nebul', 'Cosm', 'Stel', 'Lun', 'Cel', 'Vort', 'Nyx', 'Gal', 'Zeph'];
+      const middles = ['or', 'ix', 'ar', 'on', 'is', 'en', 'os', 'ia', 'us', 'yn'];
+      const suffixes = ['ion', 'ara', 'ix', 'us', 'ia', 'or', 'is', 'ax', 'yn', 'os'];
+      
+      let name = '';
+      
+      // Random structure: prefix + middle + suffix OR prefix + suffix
+      if (random() > 0.5) {
+        name = random(prefixes) + random(middles) + random(suffixes);
+      } else {
+        name = random(prefixes) + random(suffixes);
+      }
+      
+      return name.toUpperCase();
+    }
+
+    function generatePlanetName() {
+      const prefixes = ['Zor', 'Kep', 'Xan', 'Thal', 'Quen', 'Vel', 'Drak', 'Mor', 'Zyth', 'Kar'];
+      const middles = ['id', 'un', 'ax', 'or', 'in', 'el', 'ak', 'us', 'yn', 'is'];
+      const suffixes = ['oth', 'ion', 'ar', 'ix', 'us', 'on', 'ia', 'en', 'os', 'ax'];
+      
+      let name = '';
+      
+      if (random() > 0.4) {
+        name = random(prefixes) + random(middles) + random(suffixes);
+      } else {
+        name = random(prefixes) + random(suffixes);
+      }
+      
+      return name.toUpperCase();
+    }
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      
+      // Randomly select star type and colors
+      let starTypes = [
+        {
+          name: 'Blue Giant',
+          outer: { r: 150, g: 200, b: 255 },
+          corona: { r: 180, g: 220, b: 255 },
+          core: { r: 200, g: 230, b: 255 },
+          middle: { r: 220, g: 240, b: 255 },
+          hot: { r: 240, g: 250, b: 255 },
+          center: { r: 255, g: 255, b: 255 },
+          flameOuter: { r: 180, g: 220, b: 255 },
+          flameMid: { r: 200, g: 230, b: 255 },
+          flameInner: { r: 220, g: 245, b: 255 }
+        },
+        {
+          name: 'Yellow Star',
+          outer: { r: 255, g: 150, b: 0 },
+          corona: { r: 255, g: 180, b: 0 },
+          core: { r: 255, g: 120, b: 0 },
+          middle: { r: 255, g: 200, b: 0 },
+          hot: { r: 255, g: 255, b: 150 },
+          center: { r: 255, g: 255, b: 255 },
+          flameOuter: { r: 255, g: 100, b: 0 },
+          flameMid: { r: 255, g: 200, b: 0 },
+          flameInner: { r: 255, g: 255, b: 200 }
+        },
+        {
+          name: 'Orange Star',
+          outer: { r: 255, g: 100, b: 0 },
+          corona: { r: 255, g: 130, b: 20 },
+          core: { r: 255, g: 90, b: 0 },
+          middle: { r: 255, g: 150, b: 30 },
+          hot: { r: 255, g: 200, b: 100 },
+          center: { r: 255, g: 240, b: 200 },
+          flameOuter: { r: 255, g: 80, b: 0 },
+          flameMid: { r: 255, g: 150, b: 0 },
+          flameInner: { r: 255, g: 220, b: 150 }
+        },
+        {
+          name: 'Red Giant',
+          outer: { r: 255, g: 50, b: 0 },
+          corona: { r: 255, g: 80, b: 30 },
+          core: { r: 255, g: 40, b: 0 },
+          middle: { r: 255, g: 100, b: 50 },
+          hot: { r: 255, g: 150, b: 100 },
+          center: { r: 255, g: 200, b: 180 },
+          flameOuter: { r: 255, g: 50, b: 0 },
+          flameMid: { r: 255, g: 120, b: 40 },
+          flameInner: { r: 255, g: 180, b: 120 }
+        },
+        {
+          name: 'White Dwarf',
+          outer: { r: 220, g: 230, b: 255 },
+          corona: { r: 230, g: 240, b: 255 },
+          core: { r: 240, g: 245, b: 255 },
+          middle: { r: 245, g: 250, b: 255 },
+          hot: { r: 250, g: 252, b: 255 },
+          center: { r: 255, g: 255, b: 255 },
+          flameOuter: { r: 200, g: 220, b: 255 },
+          flameMid: { r: 230, g: 240, b: 255 },
+          flameInner: { r: 250, g: 252, b: 255 }
+        }
+      ];
+      
+      let selectedStar = random(starTypes);
+      starType = selectedStar.name;
+      starColors = selectedStar;
+      
+      // Create starfield
+      for (let i = 0; i < 500; i++) {
+        stars.push({
+          x: random(-width, width),
+          y: random(-height, height),
+          size: random(1, 3),
+          twinkle: random(TWO_PI),
+          twinkleSpeed: random(0.02, 0.05)
+        });
+      }
+      
+      // Create nebula clouds with complex structure
+      for (let i = 0; i < 3; i++) {
+        let baseX = random(-width/2, width/2);
+        let baseY = random(-height/2, height/2);
+        let embeddedStars = [];
+        let dustParticles = [];
+        
+        // Create dust particles for organic cloud shape
+        for (let j = 0; j < 400; j++) {
+          let angle = random(TWO_PI);
+          let distance = randomGaussian() * 120;
+          dustParticles.push({
+            x: cos(angle) * distance,
+            y: sin(angle) * distance,
+            size: random(1, 4),
+            opacity: random(0.3, 1),
+            colorIndex: int(random(4))
+          });
+        }
+        
+        // Add newborn stars within nebula
+        for (let j = 0; j < int(random(5, 12)); j++) {
+          embeddedStars.push({
+            x: baseX + random(-80, 80),
+            y: baseY + random(-80, 80),
+            brightness: random(0.5, 1),
+            size: random(2, 5),
+            twinkle: random(TWO_PI)
+          });
+        }
+        
+        nebulas.push({
+          x: baseX,
+          y: baseY,
+          size: random(200, 400),
+          noiseOffsetX: random(1000),
+          noiseOffsetY: random(1000),
+          rotation: random(TWO_PI),
+          rotationSpeed: random(-0.0005, 0.0005),
+          // Vibrant deep colors that fade
+          colors: [
+            { r: 0, g: 180, b: 200, a: 60 },      // Vibrant deep cyan
+            { r: 200, g: 0, b: 140, a: 55 },      // Vibrant magenta
+            { r: 180, g: 80, b: 20, a: 50 },      // Rich burnt orange
+            { r: 60, g: 100, b: 200, a: 45 }      // Deep vibrant blue
+          ],
+          embeddedStars: embeddedStars,
+          dustParticles: dustParticles
+        });
+      }
+      
+      // Create constellations
+      for (let i = 0; i < 5; i++) {
+        let constellation = [];
+        let numStars = int(random(5, 8));  // At least 5 stars for good connections
+        
+        // Pick a central position
+        let centerX = random(-width/2 + 100, width/2 - 100);
+        let centerY = random(-height/2 + 100, height/2 - 100);
+        
+        for (let j = 0; j < numStars; j++) {
+          constellation.push({
+            x: centerX + random(-60, 60),  // Tighter clustering
+            y: centerY + random(-60, 60),
+            twinkle: random(TWO_PI),
+            twinkleSpeed: random(0.02, 0.05)
+          });
+        }
+        
+        constellations.push({
+          stars: constellation,
+          name: generateConstellationName(),
+          labelX: centerX,
+          labelY: centerY - 80,
+          hovered: false
+        });
+      }
+      
+      // Initialize flame particles
+      for (let i = 0; i < 50; i++) {
+        flameParticles.push(createFlameParticle());
+      }
+      
+      // Create random number of planets (1-9) with random colors and properties
+      let numPlanets = int(random(1, 10)); // 1 to 9 planets
+      let baseDistance = 80;
+      let distanceIncrement = 50;
+      
+      for (let i = 0; i < numPlanets; i++) {
+        let distance = baseDistance + i * distanceIncrement + random(-15, 15);
+        let size = random(12, 50);
+        let speed = random(0.002, 0.025) * (1 / (i + 1)); // Slower as distance increases
+        let planetColor = color(random(50, 255), random(50, 255), random(50, 255));
+        let ellipseRatioX = random(0.7, 1.4);
+        let ellipseRatioY = random(0.7, 1.4);
+        
+        planets.push(new Planet(distance, size, speed, planetColor, generatePlanetName(), ellipseRatioX, ellipseRatioY));
+      }
+      
+      // Randomly add moons and rings to planets
+      for (let planet of planets) {
+        planet.randomizeFeatures();
+      }
+      
+      // 70% chance to have an asteroid belt
+      if (random() < 0.7) {
+        asteroidBelt = {
+          distance: random(140, 768), // Between Mars and Jupiter equivalent
+          asteroids: [],
+          ellipseRatioX: random(0.7, 1.3),
+          ellipseRatioY: random(0.7, 1.3),
+          rotation: random(TWO_PI)
+        };
+        
+        // Create individual asteroids
+        let numAsteroids = int(random(80, 150));
+        for (let i = 0; i < numAsteroids; i++) {
+          asteroidBelt.asteroids.push({
+            angle: random(TWO_PI),
+            speed: random(0.003, 0.007),
+            distanceOffset: random(-15, 15), // Variation from main belt
+            size: random(1, 4),
+            rotation: random(TWO_PI),
+            rotationSpeed: random(-0.02, 0.02),
+            shape: int(random(3, 7)), // Number of vertices for irregular shape
+            color: color(random(150, 180), random(140, 170), random(130, 160))
+          });
+        }
+      }
+    }
+    
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+
+    function draw() {
+      background(0);
+      
+      push();
+      translate(width / 2, height / 2);
+      
+      // Draw nebulas
+      drawNebulas();
+      
+      // Draw stars
+      drawStars();
+      
+      // Update and draw shooting stars
+      updateShootingStars();
+      drawShootingStars();
+      
+      // Update constellation hover states
+      updateConstellationHover();
+      
+      // Draw constellations
+      drawConstellations();
+      
+      pop();
+      
+      translate(width / 2, height / 2);
+      
+      // Draw blazing sun with flames
+      drawSun();
+      
+      // Draw and update asteroid belt if it exists
+      if (asteroidBelt) {
+        drawAsteroidBelt();
+      }
+      
+      // Convert mouse position to relative coordinates
+      let relMouseX = mouseX - width / 2;
+      let relMouseY = mouseY - height / 2;
+      
+      // Update and display planets
+      for (let planet of planets) {
+        planet.orbit();
+        planet.checkHover(relMouseX, relMouseY);
+        planet.display();
+      }
+    }
+
+    function drawSun() {
+      // Update and draw flame particles
+      for (let i = flameParticles.length - 1; i >= 0; i--) {
+        let p = flameParticles[i];
+        p.update();
+        p.display();
+        
+        if (p.isDead()) {
+          flameParticles.splice(i, 1);
+          flameParticles.push(createFlameParticle());
+        }
+      }
+      
+      // Outer glow layers with animation
+      for (let i = 100; i > 0; i -= 8) {
+        let pulse = sin(frameCount * 0.05 + i * 0.1) * 10;
+        fill(starColors.outer.r, starColors.outer.g, starColors.outer.b, 20);
+        noStroke();
+        ellipse(0, 0, i + pulse, i + pulse);
+      }
+      
+      // Corona flares
+      for (let a = 0; a < TWO_PI; a += PI / 4) {
+        let flareLength = 40 + sin(frameCount * 0.1 + a) * 15;
+        let flareAngle = a + sin(frameCount * 0.05) * 0.2;
+        push();
+        rotate(flareAngle);
+        fill(starColors.corona.r, starColors.corona.g, starColors.corona.b, 100);
+        triangle(0, -5, flareLength, 0, 0, 5);
+        pop();
+      }
+      
+      // Sun core with texture
+      fill(starColors.core.r, starColors.core.g, starColors.core.b);
+      ellipse(0, 0, 65, 65);
+      
+      // Middle layer
+      fill(starColors.middle.r, starColors.middle.g, starColors.middle.b);
+      ellipse(0, 0, 55, 55);
+      
+      // Hot core
+      fill(starColors.hot.r, starColors.hot.g, starColors.hot.b);
+      ellipse(0, 0, 45, 45);
+      
+      // Bright center
+      fill(starColors.center.r, starColors.center.g, starColors.center.b, 200);
+      ellipse(0, 0, 30, 30);
+    }
+    
+    function createFlameParticle() {
+      let angle = random(TWO_PI);
+      let radius = random(25, 35);
+      return {
+        x: cos(angle) * radius,
+        y: sin(angle) * radius,
+        vx: cos(angle) * random(0.5, 1.5),
+        vy: sin(angle) * random(0.5, 1.5),
+        life: 1.0,
+        size: random(3, 8),
+        update: function() {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.life -= 0.02;
+        },
+        display: function() {
+          let alpha = this.life * 200;
+          if (this.life > 0.7) {
+            fill(starColors.flameInner.r, starColors.flameInner.g, starColors.flameInner.b, alpha);
+          } else if (this.life > 0.4) {
+            fill(starColors.flameMid.r, starColors.flameMid.g, starColors.flameMid.b, alpha);
+          } else {
+            fill(starColors.flameOuter.r, starColors.flameOuter.g, starColors.flameOuter.b, alpha);
+          }
+          noStroke();
+          ellipse(this.x, this.y, this.size * this.life, this.size * this.life);
+        },
+        isDead: function() {
+          return this.life <= 0;
+        }
+      };
+    }
+    
+    function drawStars() {
+      for (let star of stars) {
+        let brightness = 150 + sin(star.twinkle) * 105;
+        let starSize = star.size * (0.8 + sin(star.twinkle) * 0.2);
+        fill(brightness);
+        noStroke();
+        ellipse(star.x, star.y, starSize, starSize);
+        star.twinkle += star.twinkleSpeed;
+      }
+    }
+    
+    function updateShootingStars() {
+      // Randomly create shooting stars (every 3-8 seconds on average)
+      if (millis() - lastShootingStar > random(3000, 8000)) {
+        createShootingStar();
+        lastShootingStar = millis();
+      }
+      
+      // Update existing shooting stars
+      for (let i = shootingStars.length - 1; i >= 0; i--) {
+        let star = shootingStars[i];
+        
+        // Update position
+        star.x += star.vx;
+        star.y += star.vy;
+        star.life -= 0.01;
+        
+        // Add trail point
+        star.trail.push({ x: star.x, y: star.y, alpha: star.life });
+        
+        // Keep trail length limited
+        if (star.trail.length > 20) {
+          star.trail.shift();
+        }
+        
+        // Remove if dead or off screen
+        if (star.life <= 0 || 
+            star.x < -width || star.x > width || 
+            star.y < -height || star.y > height) {
+          shootingStars.splice(i, 1);
+        }
+      }
+    }
+    
+    function createShootingStar() {
+      // Random starting position at edge of screen
+      let startSide = int(random(4));
+      let x, y, vx, vy;
+      
+      if (startSide === 0) { // Top
+        x = random(-width/2, width/2);
+        y = -height/2;
+        vx = random(-3, 3);
+        vy = random(4, 8);
+      } else if (startSide === 1) { // Right
+        x = width/2;
+        y = random(-height/2, height/2);
+        vx = random(-8, -4);
+        vy = random(-3, 3);
+      } else if (startSide === 2) { // Bottom
+        x = random(-width/2, width/2);
+        y = height/2;
+        vx = random(-3, 3);
+        vy = random(-8, -4);
+      } else { // Left
+        x = -width/2;
+        y = random(-height/2, height/2);
+        vx = random(4, 8);
+        vy = random(-3, 3);
+      }
+      
+      shootingStars.push({
+        x: x,
+        y: y,
+        vx: vx,
+        vy: vy,
+        life: 1.0,
+        size: random(2, 4),
+        trail: [],
+        isComet: random() < 0.3 // 30% chance to be a comet with more trail
+      });
+    }
+    
+    function drawShootingStars() {
+      for (let star of shootingStars) {
+        // Draw trail
+        if (star.trail.length > 1) {
+          noFill();
+          for (let i = 0; i < star.trail.length - 1; i++) {
+            let t1 = star.trail[i];
+            let t2 = star.trail[i + 1];
+            let alpha = map(i, 0, star.trail.length, 0, 200) * star.life;
+            
+            if (star.isComet) {
+              // Comet has colorful tail
+              stroke(200, 220, 255, alpha);
+              strokeWeight(map(i, 0, star.trail.length, 1, 4));
+            } else {
+              // Shooting star has white tail
+              stroke(255, 255, 255, alpha);
+              strokeWeight(map(i, 0, star.trail.length, 0.5, 2));
+            }
+            
+            line(t1.x, t1.y, t2.x, t2.y);
+          }
+        }
+        
+        // Draw head
+        noStroke();
+        if (star.isComet) {
+          // Comet has a glow
+          fill(180, 220, 255, 100 * star.life);
+          ellipse(star.x, star.y, star.size * 3, star.size * 3);
+          fill(220, 240, 255, 200 * star.life);
+          ellipse(star.x, star.y, star.size * 1.5, star.size * 1.5);
+        }
+        fill(255, 255, 255, 255 * star.life);
+        ellipse(star.x, star.y, star.size, star.size);
+      }
+    }
+    
+    function updateConstellationHover() {
+      // Convert mouse position to relative coordinates
+      let relMouseX = mouseX - width / 2;
+      let relMouseY = mouseY - height / 2;
+      
+      for (let constellation of constellations) {
+        // Check if mouse is near the label
+        let d = dist(relMouseX, relMouseY, constellation.labelX, constellation.labelY);
+        constellation.hovered = d < 40; // Hover radius
+      }
+    }
+    
+    function drawNebulas() {
+      for (let nebula of nebulas) {
+        push();
+        translate(nebula.x, nebula.y);
+        rotate(nebula.rotation);
+        nebula.rotation += nebula.rotationSpeed;
+        
+        // Draw dust particles to create organic cloud shapes
+        noStroke();
+        for (let dust of nebula.dustParticles) {
+          let color = nebula.colors[dust.colorIndex];
+          
+          // Add subtle movement with noise
+          let moveX = noise(dust.x * 0.01 + frameCount * 0.002) * 10 - 5;
+          let moveY = noise(dust.y * 0.01 + frameCount * 0.002 + 1000) * 10 - 5;
+          
+          // Distance from center for fading and brightness
+          let distFromCenter = dist(dust.x, dust.y, 0, 0);
+          let fadeMultiplier = map(distFromCenter, 0, 200, 1, 0);
+          fadeMultiplier = constrain(fadeMultiplier, 0, 1);
+          
+          // Brightness boost in clustered center areas
+          let densityBoost = map(distFromCenter, 0, 100, 2.5, 1);
+          densityBoost = constrain(densityBoost, 1, 2.5);
+          
+          // Multiple layers of same particle for soft glow
+          for (let layer = 0; layer < 3; layer++) {
+            let layerAlpha = color.a * dust.opacity * fadeMultiplier * densityBoost / (layer + 1);
+            fill(color.r, color.g, color.b, layerAlpha);
+            let layerSize = dust.size + layer * 2;
+            ellipse(dust.x + moveX, dust.y + moveY, layerSize, layerSize);
+          }
+        }
+        
+        // Draw embedded newborn stars with glow
+        for (let star of nebula.embeddedStars) {
+          let localX = star.x - nebula.x;
+          let localY = star.y - nebula.y;
+          let shimmer = sin(star.twinkle + frameCount * 0.05) * 0.3 + 0.7;
+          
+          // Star glow (rim light effect)
+          for (let g = 3; g > 0; g--) {
+            fill(255, 255, 255, 30 / g);
+            ellipse(localX, localY, star.size * g * 2, star.size * g * 2);
+          }
+          
+          // Bright star core
+          fill(255, 255, 255, 200 + shimmer * 55);
+          ellipse(localX, localY, star.size * shimmer, star.size * shimmer);
+          
+          // Diamond sparkle
+          stroke(255, 255, 255, 150 * shimmer);
+          strokeWeight(1);
+          let sparkleSize = star.size * 2;
+          line(localX - sparkleSize, localY, localX + sparkleSize, localY);
+          line(localX, localY - sparkleSize, localX, localY + sparkleSize);
+          noStroke();
+        }
+        
+        pop();
+      }
+    }
+    
+    function drawConstellations() {
+      for (let constellation of constellations) {
+        // Enhanced colors when hovered
+        let lineAlpha = constellation.hovered ? 180 : 80;
+        let lineWeight = constellation.hovered ? 2 : 1;
+        let starSize = constellation.hovered ? 6 : 4;
+        let starBrightness = constellation.hovered ? 255 : 200;
+        
+        // Draw constellation lines - connect all consecutive stars
+        stroke(100, 100, 150, lineAlpha);
+        strokeWeight(lineWeight);
+        
+        // Add glow effect when hovered
+        if (constellation.hovered) {
+          stroke(150, 150, 255, 120);
+        }
+        
+        for (let i = 0; i < constellation.stars.length - 1; i++) {
+          line(constellation.stars[i].x, constellation.stars[i].y,
+               constellation.stars[i + 1].x, constellation.stars[i + 1].y);
+        }
+        
+        // Close the constellation by connecting last star to first
+        if (constellation.stars.length > 2) {
+          line(constellation.stars[constellation.stars.length - 1].x, 
+               constellation.stars[constellation.stars.length - 1].y,
+               constellation.stars[0].x, constellation.stars[0].y);
+        }
+        
+        // Draw constellation stars with glow when hovered
+        noStroke();
+        for (let star of constellation.stars) {
+          // Twinkle animation
+          let twinkleBrightness = starBrightness + sin(star.twinkle) * 55;
+          let twinkleSize = starSize * (0.8 + sin(star.twinkle) * 0.4);
+          star.twinkle += star.twinkleSpeed;
+          
+          if (constellation.hovered) {
+            // Glow layers
+            fill(200, 200, 255, 60);
+            ellipse(star.x, star.y, twinkleSize + 8, twinkleSize + 8);
+            fill(200, 200, 255, 100);
+            ellipse(star.x, star.y, twinkleSize + 4, twinkleSize + 4);
+          }
+          fill(twinkleBrightness, twinkleBrightness, 255);
+          ellipse(star.x, star.y, twinkleSize, twinkleSize);
+        }
+        
+        // Draw constellation name - brighter when hovered
+        let nameAlpha = constellation.hovered ? 220 : 120;
+        let nameBrightness = constellation.hovered ? 200 : 150;
+        fill(nameBrightness, nameBrightness, 255, nameAlpha);
+        textAlign(CENTER, CENTER);
+        textSize(14);
+        textFont('PT Sans');
+        text(constellation.name, constellation.labelX, constellation.labelY);
+        
+        // Add subtle glow to name when hovered
+        if (constellation.hovered) {
+          fill(255, 255, 255, 80);
+          text(constellation.name, constellation.labelX, constellation.labelY);
+        }
+      }
+    }
+    
+    function drawAsteroidBelt() {
+      push();
+      rotate(asteroidBelt.rotation);
+      
+      for (let asteroid of asteroidBelt.asteroids) {
+        // Update asteroid position
+        asteroid.angle += asteroid.speed;
+        asteroid.rotation += asteroid.rotationSpeed;
+        
+        // Calculate position on elliptical orbit
+        let distance = asteroidBelt.distance + asteroid.distanceOffset;
+        let x = cos(asteroid.angle) * distance * asteroidBelt.ellipseRatioX;
+        let y = sin(asteroid.angle) * distance * asteroidBelt.ellipseRatioY;
+        
+        push();
+        translate(x, y);
+        rotate(asteroid.rotation);
+        
+        // Draw irregular asteroid shape
+        fill(asteroid.color);
+        noStroke();
+        beginShape();
+        for (let i = 0; i < asteroid.shape; i++) {
+          let angle = (TWO_PI / asteroid.shape) * i;
+          let r = asteroid.size * random(0.7, 1.3);
+          let vx = cos(angle) * r;
+          let vy = sin(angle) * r;
+          vertex(vx, vy);
+        }
+        endShape(CLOSE);
+        
+        pop();
+      }
+      
+      pop();
+    }
+
+    class Planet {
+      constructor(distance, size, speed, col, name, ellipseRatioX, ellipseRatioY) {
+        this.distance = distance;
+        this.size = size;
+        this.speed = speed;
+        this.angle = random(TWO_PI);
+        this.col = col;
+        this.name = name;
+        this.ellipseRatioX = ellipseRatioX || 1;
+        this.ellipseRatioY = ellipseRatioY || 1;
+        this.orbitRotation = random(TWO_PI);
+        this.wobbleSpeed = random(0.01, 0.03);
+        this.wobbleAmount = random(5, 15);
+        this.moons = [];
+        this.hasRings = false;
+        this.rings = [];
+        this.hovered = false;
+        this.x = 0;
+        this.y = 0;
+      }
+      
+      randomizeFeatures() {
+        // 60% chance to have moons
+        if (random() < 0.6) {
+          let numMoons = int(random(1, 5)); // 1-4 moons
+          for (let i = 0; i < numMoons; i++) {
+            this.moons.push({
+              distance: this.size/2 + 15 + i * 12,
+              size: random(2, 5),
+              speed: random(0.02, 0.08) * (random() > 0.5 ? 1 : -1),
+              angle: random(TWO_PI),
+              color: color(random(150, 220), random(150, 220), random(150, 220))
+            });
+          }
+        }
+        
+        // 40% chance to have rings
+        if (random() < 0.4) {
+          this.hasRings = true;
+          let numRings = int(random(2, 5)); // 2-4 rings
+          for (let i = 0; i < numRings; i++) {
+            this.rings.push({
+              innerRadius: this.size/2 + 10 + i * 8,
+              outerRadius: this.size/2 + 15 + i * 8,
+              opacity: random(80, 150),
+              color: color(random(150, 255), random(150, 255), random(150, 255)),
+              rotation: random(TWO_PI)
+            });
+          }
+        }
+      }
+
+      orbit() {
+        this.angle += this.speed;
+        
+        // Calculate current position on the elliptical orbit
+        // Apply orbit rotation to get the actual position
+        let localX = cos(this.angle) * this.distance * this.ellipseRatioX;
+        let localY = sin(this.angle) * this.distance * this.ellipseRatioY;
+        
+        // Rotate the position by orbit rotation
+        this.x = localX * cos(this.orbitRotation) - localY * sin(this.orbitRotation);
+        this.y = localX * sin(this.orbitRotation) + localY * cos(this.orbitRotation);
+        
+        // Update moon orbits
+        for (let moon of this.moons) {
+          moon.angle += moon.speed;
+        }
+      }
+      
+      checkHover(mx, my) {
+        let d = dist(mx, my, this.x, this.y);
+        this.hovered = d < this.size / 2 + 20; // Hover radius includes some padding
+      }
+
+      display() {
+        push();
+        
+        // Draw irregular orbit path (brighter when hovered)
+        rotate(this.orbitRotation);
+        noFill();
+        stroke(this.hovered ? 100 : 50);
+        strokeWeight(this.hovered ? 1.5 : 1);
+        ellipse(0, 0, this.distance * 2 * this.ellipseRatioX, this.distance * 2 * this.ellipseRatioY);
+        
+        pop();
+        push();
+        
+        // Move to planet position using pre-calculated coordinates
+        translate(this.x, this.y);
+        
+        // Draw rings behind planet (brighter when hovered)
+        if (this.hasRings) {
+          for (let ring of this.rings) {
+            push();
+            rotate(ring.rotation);
+            noFill();
+            let ringOpacity = this.hovered ? ring.opacity * 1.8 : ring.opacity;
+            stroke(red(ring.color), green(ring.color), blue(ring.color), ringOpacity);
+            strokeWeight(ring.outerRadius - ring.innerRadius);
+            ellipse(0, 0, ring.innerRadius * 2, ring.innerRadius * 2);
+            
+            // Add extra glow when hovered
+            if (this.hovered) {
+              stroke(red(ring.color), green(ring.color), blue(ring.color), ringOpacity * 0.4);
+              strokeWeight((ring.outerRadius - ring.innerRadius) + 4);
+              ellipse(0, 0, ring.innerRadius * 2, ring.innerRadius * 2);
+            }
+            pop();
+          }
+        }
+        
+        // Enhanced planet glow when hovered
+        if (this.hovered) {
+          for (let i = 4; i > 0; i--) {
+            fill(red(this.col), green(this.col), blue(this.col), 30 / i);
+            ellipse(0, 0, this.size + i * 8, this.size + i * 8);
+          }
+        }
+        
+        // Planet
+        fill(this.col);
+        noStroke();
+        let displaySize = this.hovered ? this.size * 1.1 : this.size;
+        ellipse(0, 0, displaySize, displaySize);
+        
+        // Planet glow (brighter when hovered)
+        let glowAlpha = this.hovered ? 100 : 50;
+        fill(red(this.col), green(this.col), blue(this.col), glowAlpha);
+        ellipse(0, 0, displaySize + 5, displaySize + 5);
+        
+        // Draw moons (brighter and larger when planet is hovered)
+        for (let moon of this.moons) {
+          let moonX = cos(moon.angle) * moon.distance;
+          let moonY = sin(moon.angle) * moon.distance;
+          
+          // Moon orbit path (more visible when hovered)
+          noFill();
+          stroke(70, 70, 80, this.hovered ? 120 : 60);
+          strokeWeight(this.hovered ? 1 : 0.5);
+          ellipse(0, 0, moon.distance * 2, moon.distance * 2);
+          
+          // Enhanced moon glow when hovered
+          if (this.hovered) {
+            fill(red(moon.color), green(moon.color), blue(moon.color), 60);
+            ellipse(moonX, moonY, moon.size + 6, moon.size + 6);
+          }
+          
+          // Moon (larger when hovered)
+          fill(moon.color);
+          noStroke();
+          let moonSize = this.hovered ? moon.size * 1.2 : moon.size;
+          ellipse(moonX, moonY, moonSize, moonSize);
+          
+          // Moon glow (brighter when hovered)
+          let moonGlowAlpha = this.hovered ? 150 : 80;
+          fill(red(moon.color), green(moon.color), blue(moon.color), moonGlowAlpha);
+          ellipse(moonX, moonY, moonSize + 2, moonSize + 2);
+        }
+        
+        pop();
+        
+        // Draw planet name outside of transformations so it's always upright and visible
+        push();
+        // Position name at planet location
+        translate(this.x, this.y);
+        
+        // Calculate distance below planet to place name (accounting for rings)
+        let maxRingRadius = 0;
+        if (this.hasRings && this.rings.length > 0) {
+          for (let ring of this.rings) {
+            if (ring.outerRadius > maxRingRadius) {
+              maxRingRadius = ring.outerRadius;
+            }
+          }
+        }
+        let nameOffset = Math.max(this.size / 2 + 12, maxRingRadius + 8);
+        
+        // Planet name (brighter and larger when hovered, always upright)
+        let nameAlpha = this.hovered ? 255 : 150;
+        let nameBrightness = this.hovered ? 255 : 200;
+        let nameSize = this.hovered ? 12 : 10;
+        fill(nameBrightness, nameBrightness, 255, nameAlpha);
+        textAlign(CENTER, CENTER);
+        textSize(nameSize);
+        textFont('PT Sans');
+        text(this.name, 0, nameOffset);
+        
+        // Add name glow when hovered
+        if (this.hovered) {
+          fill(255, 255, 255, 150);
+          text(this.name, 0, nameOffset);
+        }
+        
+        pop();
+      }
+    }
+  </script>
+</body>
+</html>
