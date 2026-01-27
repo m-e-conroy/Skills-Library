@@ -26,11 +26,25 @@
     let planets = [];
     let stars = [];
     let nebulas = [];
+    let galaxies = [];
+    let pulsars = [];
     let constellations = [];
     let flameParticles = [];
+    let solarFlares = [];
+    let lastSolarFlare = 0;
     let starColors = {};
     let starType = '';
     let sunSize = 65; // Base sun size, will be varied
+    let starAge = 0; // Star age in billions of years
+    let starTemperature = 0; // Surface temperature in Kelvin
+    let starLuminosity = 0; // Relative to Sun
+    let starMass = 0; // Relative to Sun
+    let selectedStar = false;
+    let starPanelAnimProgress = 0;
+    let starPanelAnimState = 'closed';
+    let selectedPulsar = null;
+    let pulsarPanelAnimProgress = 0;
+    let pulsarPanelAnimState = 'closed';
     let asteroidBelt = null;
     let shootingStars = [];
     let lastShootingStar = 0;
@@ -41,15 +55,36 @@
     let hoveredMoonIndex = -1;
     let moonNamePositions = [];
     let solarSystemName = '';
+    let oldSolarSystemName = '';
+    let nameTransitionProgress = 0;
+    let nameTransitionActive = false;
     let selectedConstellation = null;
     let constellationPanelAnimProgress = 0;
     let constellationPanelAnimState = 'closed';
     let hoveredStarIndex = -1;
+    
+    // System transition variables
+    let isTransitioning = false;
+    let transitionPhase = 0; // 0-8 for different phases
+    let transitionProgress = 0;
+    let transitionSpeed = 0.02;
+    let enteringTextFade = 0;
+    let selectedConstellationStar = null;
+    let constellationZoom = 1;
+    let constellationOffsetX = 0;
+    let constellationOffsetY = 0;
+    let systemFade = 0;
+    let otherConstellationsFade = 0;
+    let selectedConstellationFade = 0;
 
     function generateConstellationName() {
-      const prefixes = ['Astra', 'Nebul', 'Cosm', 'Stel', 'Lun', 'Cel', 'Vort', 'Nyx', 'Gal', 'Zeph'];
-      const middles = ['or', 'ix', 'ar', 'on', 'is', 'en', 'os', 'ia', 'us', 'yn'];
-      const suffixes = ['ion', 'ara', 'ix', 'us', 'ia', 'or', 'is', 'ax', 'yn', 'os'];
+      const prefixes = ['Astra', 'Nebul', 'Cosm', 'Stel', 'Lun', 'Cel', 'Vort', 'Nyx', 'Gal', 'Zeph', 
+                        'Draco', 'Lyra', 'Cyg', 'Oph', 'Ori', 'Canis', 'Ursa', 'Aqui', 'Scor', 'Pers',
+                        'Andr', 'Cas', 'Peg', 'Ceph', 'Aur', 'Boöt', 'Cen', 'Pyth', 'Astr', 'Neb'];
+      const middles = ['or', 'ix', 'ar', 'on', 'is', 'en', 'os', 'ia', 'us', 'yn',
+                       'el', 'op', 'an', 'io', 'er', 'al', 'om', 'ur', 'ax', 'il'];
+      const suffixes = ['ion', 'ara', 'ix', 'us', 'ia', 'or', 'is', 'ax', 'yn', 'os',
+                        'ius', 'eon', 'yx', 'ella', 'icus', 'ides', 'onis', 'eus', 'aos', 'eth'];
       
       let name = '';
       
@@ -64,9 +99,13 @@
     }
 
     function generatePlanetName() {
-      const prefixes = ['Zor', 'Kep', 'Xan', 'Thal', 'Quen', 'Vel', 'Drak', 'Mor', 'Zyth', 'Kar'];
-      const middles = ['id', 'un', 'ax', 'or', 'in', 'el', 'ak', 'us', 'yn', 'is'];
-      const suffixes = ['oth', 'ion', 'ar', 'ix', 'us', 'on', 'ia', 'en', 'os', 'ax'];
+      const prefixes = ['Zor', 'Kep', 'Xan', 'Thal', 'Quen', 'Vel', 'Drak', 'Mor', 'Zyth', 'Kar',
+                        'Nex', 'Vor', 'Brak', 'Thul', 'Xyl', 'Grax', 'Nox', 'Vex', 'Zal', 'Kron',
+                        'Pyr', 'Syx', 'Tor', 'Vyn', 'Kax', 'Myr', 'Rax', 'Zyx', 'Thrax', 'Vorn'];
+      const middles = ['id', 'un', 'ax', 'or', 'in', 'el', 'ak', 'us', 'yn', 'is',
+                       'ex', 'ox', 'al', 'om', 'yr', 'on', 'ar', 'ol', 'ix', 'an'];
+      const suffixes = ['oth', 'ion', 'ar', 'ix', 'us', 'on', 'ia', 'en', 'os', 'ax',
+                        'ium', 'yx', 'eth', 'onn', 'ara', 'eer', 'oth', 'ius', 'eos', 'orn'];
       
       let name = '';
       
@@ -96,9 +135,13 @@
     }
 
     function generateStarName() {
-      const prefixes = ['Al', 'Be', 'Si', 'Ri', 'Al', 'Den', 'Ras', 'Min', 'Sai', 'Reg'];
-      const middles = ['ta', 'ge', 'ri', 'de', 'pha', 'eb', 'al', 'ka', 'ul', 'ux'];
-      const suffixes = ['us', 'x', 'rix', 'min', 'tan', 'res', 'bor', 'gol', 'tar', 'ran'];
+      const prefixes = ['Al', 'Be', 'Si', 'Ri', 'Den', 'Ras', 'Min', 'Sai', 'Reg', 'Pol',
+                        'Arc', 'Ald', 'Ant', 'Cap', 'Veg', 'Alt', 'Bet', 'Prox', 'Mir', 'Zet',
+                        'Alp', 'Del', 'Gam', 'Eps', 'Eta', 'The', 'Iota', 'Kap', 'Lam', 'Sig'];
+      const middles = ['ta', 'ge', 'ri', 'de', 'pha', 'eb', 'al', 'ka', 'ul', 'ux',
+                       'bar', 'tar', 'nar', 'tor', 'deb', 'tel', 'cen', 'her', 'ara', 'cir'];
+      const suffixes = ['us', 'x', 'rix', 'min', 'tan', 'res', 'bor', 'gol', 'tar', 'ran',
+                        'is', 'el', 'or', 'an', 'on', 'ux', 'ius', 'air', 'es', 'ath'];
       
       let name = '';
       
@@ -177,9 +220,28 @@
 
     function setup() {
       createCanvas(windowWidth, windowHeight);
+      generateSystem();
+    }
+    
+    function generateSystem() {
+      // Clear all existing data
+      stars = [];
+      nebulas = [];
+      galaxies = [];
+      pulsars = [];
+      constellations = [];
+      planets = [];
+      asteroidBelt = null;
+      flameParticles = [];
+      solarFlares = [];
+      lastSolarFlare = millis();
       
-      // Generate solar system name
-      solarSystemName = generateSolarSystemName();
+      // Generate solar system name - use selected star name if transitioning
+      if (isTransitioning && selectedConstellationStar && selectedConstellationStar.name) {
+        solarSystemName = selectedConstellationStar.name + ' System';
+      } else {
+        solarSystemName = generateSolarSystemName();
+      }
       
       // Randomly select star type and colors
       let starTypes = [
@@ -245,21 +307,41 @@
         }
       ];
       
-      let selectedStar = random(starTypes);
-      starType = selectedStar.name;
-      starColors = selectedStar;
+      let selectedStarType = random(starTypes);
+      starType = selectedStarType.name;
+      starColors = selectedStarType;
       
       // Vary sun size based on star type and add randomness
       if (starType === 'Blue Giant') {
         sunSize = random(90, 120); // Larger
+        starTemperature = random(10000, 30000);
+        starAge = random(0.01, 0.1); // Very young
+        starLuminosity = random(10000, 100000);
+        starMass = random(10, 50);
       } else if (starType === 'Red Giant') {
         sunSize = random(100, 140); // Largest
+        starTemperature = random(3000, 4500);
+        starAge = random(8, 12); // Old
+        starLuminosity = random(1000, 10000);
+        starMass = random(0.8, 3);
       } else if (starType === 'White Dwarf') {
         sunSize = random(30, 50); // Smallest
+        starTemperature = random(8000, 40000);
+        starAge = random(10, 13); // Very old
+        starLuminosity = random(0.0001, 0.1);
+        starMass = random(0.5, 1.4);
       } else if (starType === 'Yellow Star') {
         sunSize = random(55, 75); // Medium
+        starTemperature = random(5200, 6000);
+        starAge = random(1, 10);
+        starLuminosity = random(0.8, 1.5);
+        starMass = random(0.8, 1.2);
       } else if (starType === 'Orange Star') {
         sunSize = random(60, 80); // Medium-large
+        starTemperature = random(3700, 5200);
+        starAge = random(1, 12);
+        starLuminosity = random(0.4, 0.8);
+        starMass = random(0.6, 0.9);
       }
       
       // Create starfield
@@ -270,6 +352,34 @@
           size: random(1, 3),
           twinkle: random(TWO_PI),
           twinkleSpeed: random(0.02, 0.05)
+        });
+      }
+      
+      // Create rare pulsars (0-2 per system)
+      let numPulsars = random() < 0.6 ? int(random(0, 3)) : 0; // 60% chance to have any
+      for (let i = 0; i < numPulsars; i++) {
+        let rotationPeriod = random(0.001, 0.1); // seconds
+        let isMillisecond = rotationPeriod < 0.01;
+        pulsars.push({
+          x: random(-width/2, width/2),
+          y: random(-height/2, height/2),
+          pulsePhase: random(TWO_PI),
+          pulseSpeed: random(0.08, 0.15), // Fast rotation
+          beamAngle: random(TWO_PI),
+          beamRotationSpeed: random(0.05, 0.12),
+          size: random(3, 6),
+          color: random() > 0.5 ? 
+            { r: 200, g: 220, b: 255 } : // Blue-white
+            { r: 255, g: 200, b: 220 },  // Pink-white
+          // Physical properties
+          name: generateStarName() + (isMillisecond ? ' MSP' : ''),
+          rotationPeriod: rotationPeriod,
+          magneticField: random(1e8, 1e14), // Gauss
+          age: random(10, 10000), // Million years
+          distance: random(500, 50000), // Light years
+          mass: random(1.2, 2.0), // Solar masses
+          radius: random(10, 20), // Kilometers
+          temperature: random(500000, 3000000) // Kelvin (X-ray emitting surface)
         });
       }
       
@@ -324,6 +434,91 @@
         });
       }
       
+      // Create distant galaxies (2-4 galaxies)
+      for (let i = 0; i < int(random(2, 5)); i++) {
+        let galaxyType = random() > 0.5 ? 'spiral' : 'elliptical';
+        let x = random(-width/2, width/2);
+        let y = random(-height/2, height/2);
+        
+        if (galaxyType === 'spiral') {
+          // Spiral galaxy
+          let arms = int(random(2, 5)); // 2-4 spiral arms
+          let armParticles = [];
+          
+          for (let arm = 0; arm < arms; arm++) {
+            let armAngle = (TWO_PI / arms) * arm;
+            let particlesPerArm = 150;
+            
+            for (let p = 0; p < particlesPerArm; p++) {
+              let progress = p / particlesPerArm;
+              let distance = progress * random(80, 120);
+              let angle = armAngle + progress * PI * random(3, 5); // Spiral tightness
+              let spread = randomGaussian() * 8 * progress; // Spread increases outward
+              
+              armParticles.push({
+                x: cos(angle) * distance + spread,
+                y: sin(angle) * distance + spread,
+                brightness: random(0.3, 1) * (1 - progress * 0.5),
+                size: random(0.5, 2)
+              });
+            }
+          }
+          
+          // Add central bulge
+          let bulgeParticles = [];
+          for (let p = 0; p < 80; p++) {
+            let angle = random(TWO_PI);
+            let distance = randomGaussian() * 15;
+            bulgeParticles.push({
+              x: cos(angle) * distance,
+              y: sin(angle) * distance,
+              brightness: random(0.6, 1),
+              size: random(1, 3)
+            });
+          }
+          
+          galaxies.push({
+            x: x,
+            y: y,
+            type: 'spiral',
+            rotation: random(TWO_PI),
+            rotationSpeed: random(-0.0003, 0.0003),
+            armParticles: armParticles,
+            bulgeParticles: bulgeParticles,
+            color: { r: random(150, 220), g: random(180, 240), b: 255 },
+            scale: random(0.6, 1.2)
+          });
+        } else {
+          // Elliptical galaxy
+          let particles = [];
+          let numParticles = 300;
+          
+          for (let p = 0; p < numParticles; p++) {
+            let angle = random(TWO_PI);
+            let distance = randomGaussian() * 50;
+            distance = abs(distance);
+            
+            particles.push({
+              x: cos(angle) * distance * random(0.8, 1.2),
+              y: sin(angle) * distance * random(0.4, 0.8), // Elliptical shape
+              brightness: random(0.4, 1) * (1 - distance / 100),
+              size: random(0.5, 2)
+            });
+          }
+          
+          galaxies.push({
+            x: x,
+            y: y,
+            type: 'elliptical',
+            rotation: random(TWO_PI),
+            rotationSpeed: random(-0.0002, 0.0002),
+            particles: particles,
+            color: { r: 255, g: random(200, 240), b: random(180, 220) },
+            scale: random(0.7, 1.3)
+          });
+        }
+      }
+      
       // Create constellations
       for (let i = 0; i < 5; i++) {
         let constellation = [];
@@ -371,8 +566,9 @@
         let planetColor = color(random(50, 255), random(50, 255), random(50, 255));
         let ellipseRatioX = random(0.7, 1.4);
         let ellipseRatioY = random(0.7, 1.4);
+        let rotationSpeed = random(0.5, 48); // Hours for one rotation (0.5 to 48 hours)
         
-        planets.push(new Planet(distance, planetSize, speed, planetColor, generatePlanetName(), ellipseRatioX, ellipseRatioY));
+        planets.push(new Planet(distance, planetSize, speed, planetColor, generatePlanetName(), ellipseRatioX, ellipseRatioY, rotationSpeed));
       }
       
       // Randomly add moons and rings to planets
@@ -441,6 +637,32 @@
     }
     
     function mousePressed() {
+      // Check if pulsar panel close button was clicked
+      if (selectedPulsar !== null && (pulsarPanelAnimState === 'open' || pulsarPanelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let closeX = panelX + 260 - 40;
+        let closeY = 20;
+        let closeSize = 30;
+        if (mouseX > closeX && mouseX < closeX + closeSize && 
+            mouseY > closeY && mouseY < closeY + closeSize) {
+          pulsarPanelAnimState = 'closing';
+          return;
+        }
+      }
+      
+      // Check if star panel close button was clicked
+      if (selectedStar && (starPanelAnimState === 'open' || starPanelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let closeX = panelX + 260 - 40;
+        let closeY = 20;
+        let closeSize = 30;
+        if (mouseX > closeX && mouseX < closeX + closeSize && 
+            mouseY > closeY && mouseY < closeY + closeSize) {
+          starPanelAnimState = 'closing';
+          return;
+        }
+      }
+      
       // Check if constellation panel close button was clicked
       if (selectedConstellation !== null && (constellationPanelAnimState === 'open' || constellationPanelAnimState === 'opening')) {
         let panelX = width - 300;
@@ -472,6 +694,31 @@
       let relMouseX = mouseX - width / 2;
       let relMouseY = mouseY - height / 2;
       
+      // Check if sun was clicked
+      let sunDist = dist(relMouseX, relMouseY, 0, 0);
+      if (sunDist < sunSize / 2) {
+        // Close planet and constellation panels if open
+        if (selectedPlanet !== null) {
+          panelAnimState = 'closing';
+          selectedPlanet = null;
+        }
+        if (selectedConstellation !== null) {
+          constellationPanelAnimState = 'closing';
+          selectedConstellation = null;
+        }
+        if (selectedPulsar !== null) {
+          pulsarPanelAnimState = 'closing';
+          selectedPulsar = null;
+        }
+        
+        if (!selectedStar) {
+          selectedStar = true;
+          starPanelAnimState = 'opening';
+          starPanelAnimProgress = 0;
+        }
+        return;
+      }
+      
       // Check if any planet was clicked
       for (let planet of planets) {
         let d = dist(relMouseX, relMouseY, planet.x, planet.y);
@@ -480,6 +727,16 @@
           if (selectedConstellation !== null) {
             constellationPanelAnimState = 'closing';
             selectedConstellation = null;
+          }
+          // Close star panel if open
+          if (selectedStar) {
+            starPanelAnimState = 'closing';
+            selectedStar = false;
+          }
+          // Close pulsar panel if open
+          if (selectedPulsar !== null) {
+            pulsarPanelAnimState = 'closing';
+            selectedPulsar = null;
           }
           
           if (selectedPlanet !== planet) {
@@ -500,6 +757,39 @@
         }
       }
       
+      // Check if any pulsar was clicked (before constellations to avoid overlap)
+      for (let pulsar of pulsars) {
+        let d = dist(relMouseX, relMouseY, pulsar.x, pulsar.y);
+        if (d < 15) { // Larger click area than visual size
+          // Close other panels
+          if (selectedPlanet !== null) {
+            panelAnimState = 'closing';
+            selectedPlanet = null;
+          }
+          if (selectedConstellation !== null) {
+            constellationPanelAnimState = 'closing';
+            selectedConstellation = null;
+          }
+          if (selectedStar) {
+            starPanelAnimState = 'closing';
+            selectedStar = false;
+          }
+          
+          if (selectedPulsar !== pulsar) {
+            if (pulsarPanelAnimState === 'open') {
+              selectedPulsar = pulsar;
+            } else if (pulsarPanelAnimState === 'opening') {
+              selectedPulsar = pulsar;
+            } else {
+              selectedPulsar = pulsar;
+              pulsarPanelAnimState = 'opening';
+              pulsarPanelAnimProgress = 0;
+            }
+          }
+          return;
+        }
+      }
+      
       // Check if constellation was clicked
       for (let constellation of constellations) {
         let d = dist(relMouseX, relMouseY, constellation.labelX, constellation.labelY);
@@ -508,6 +798,16 @@
           if (selectedPlanet !== null) {
             panelAnimState = 'closing';
             selectedPlanet = null;
+          }
+          // Close star panel if open
+          if (selectedStar) {
+            starPanelAnimState = 'closing';
+            selectedStar = false;
+          }
+          // Close pulsar panel if open
+          if (selectedPulsar !== null) {
+            pulsarPanelAnimState = 'closing';
+            selectedPulsar = null;
           }
           
           if (selectedConstellation !== constellation) {
@@ -525,6 +825,45 @@
             }
           }
           return;
+        }
+      }
+      
+      // Click outside deselects star
+      if (selectedStar && (starPanelAnimState === 'open' || starPanelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let panelY = 20;
+        let panelWidth = 260;
+        let panelHeight = 680;
+        
+        if (mouseX < panelX || mouseX > panelX + panelWidth ||
+            mouseY < panelY || mouseY > panelY + panelHeight) {
+          starPanelAnimState = 'closing';
+        }
+      }
+      
+      // Click outside deselects pulsar
+      if (selectedPulsar !== null && (pulsarPanelAnimState === 'open' || pulsarPanelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let panelY = 20;
+        let panelWidth = 260;
+        let panelHeight = 680;
+        
+        if (mouseX < panelX || mouseX > panelX + panelWidth ||
+            mouseY < panelY || mouseY > panelY + panelHeight) {
+          pulsarPanelAnimState = 'closing';
+        }
+      }
+      
+      // Click outside deselects star
+      if (selectedStar && (starPanelAnimState === 'open' || starPanelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let panelY = 20;
+        let panelWidth = 260;
+        let panelHeight = 680;
+        
+        if (mouseX < panelX || mouseX > panelX + panelWidth ||
+            mouseY < panelY || mouseY > panelY + panelHeight) {
+          starPanelAnimState = 'closing';
         }
       }
       
@@ -546,7 +885,7 @@
         let panelX = width - 300;
         let panelY = 20;
         let panelWidth = 260;
-        let panelHeight = 680;
+        let panelHeight = 720;
         
         // Don't deselect if clicking inside panel
         if (mouseX < panelX || mouseX > panelX + panelWidth ||
@@ -560,64 +899,175 @@
     function draw() {
       background(0);
       
+      // Update transition if active
+      if (isTransitioning) {
+        updateTransition();
+      }
+      
       push();
       translate(width / 2, height / 2);
+      
+      // Draw distant galaxies
+      push();
+      drawingContext.globalAlpha = 1 - systemFade;
+      drawGalaxies();
+      pop();
+      
+      // Draw pulsars
+      push();
+      drawingContext.globalAlpha = 1 - systemFade;
+      drawPulsars();
+      pop();
       
       // Draw nebulas
+      push();
+      drawingContext.globalAlpha = 1 - systemFade;
       drawNebulas();
+      pop();
       
       // Draw stars
+      push();
+      drawingContext.globalAlpha = 1 - systemFade;
       drawStars();
+      pop();
       
       // Update and draw shooting stars
-      updateShootingStars();
-      drawShootingStars();
+      if (systemFade < 0.5) {
+        updateShootingStars();
+        push();
+        drawingContext.globalAlpha = 1 - systemFade;
+        drawShootingStars();
+        pop();
+      }
       
       // Update constellation hover states
-      updateConstellationHover();
+      if (!isTransitioning) {
+        updateConstellationHover();
+      }
       
-      // Draw constellations
+      // Draw constellations with transition effects
+      push();
+      if (isTransitioning && selectedConstellationStar) {
+        // Move the selected star to the origin (screen center), then scale
+        translate(-selectedConstellationStar.x * (constellationZoom - 1), 
+                  -selectedConstellationStar.y * (constellationZoom - 1));
+        scale(constellationZoom);
+      }
       drawConstellations();
-      
       pop();
       
-      // Draw solar system (sun, asteroids, planets)
-      push();
-      translate(width / 2, height / 2);
-      
-      // Draw blazing sun with flames
-      drawSun();
-      
-      // Draw and update asteroid belt if it exists
-      if (asteroidBelt) {
-        drawAsteroidBelt();
-      }
-      
-      // Convert mouse position to relative coordinates
-      let relMouseX = mouseX - width / 2;
-      let relMouseY = mouseY - height / 2;
-      
-      // Update and display planets
-      for (let planet of planets) {
-        planet.orbit();
-        planet.checkHover(relMouseX, relMouseY);
-        planet.display();
+      // Draw "Entering [star name] System" text during phase 4 and 5
+      if (isTransitioning && (transitionPhase === 4 || transitionPhase === 5) && selectedConstellationStar) {
+        push();
+        fill(255, 255, 255, 255 * enteringTextFade);
+        textAlign(CENTER, CENTER);
+        textSize(32);
+        textFont('PT Sans');
+        let enteringText = "Entering " + selectedConstellationStar.name + " System";
+        text(enteringText, 0, -100); // Draw at center (we're already translated to width/2, height/2)
+        
+        // Add subtle glow
+        fill(200, 220, 255, 100 * enteringTextFade);
+        text(enteringText, 0, -100);
+        pop();
       }
       
       pop();
       
-      // Draw solar system name in upper left corner
+      // Draw solar system (sun, asteroids, planets) - only when visible
+      if (systemFade < 0.99 && planets.length > 0) {
+        push();
+        translate(width / 2, height / 2);
+        drawingContext.globalAlpha = 1 - systemFade;
+        
+        // Draw blazing sun with flames
+        drawSun();
+        
+        // Draw and update asteroid belt if it exists
+        if (asteroidBelt) {
+          drawAsteroidBelt();
+        }
+        
+        // Convert mouse position to relative coordinates
+        let relMouseX = mouseX - width / 2;
+        let relMouseY = mouseY - height / 2;
+        
+        // Update and display planets
+        for (let planet of planets) {
+          planet.orbit();
+          planet.checkHover(relMouseX, relMouseY);
+          planet.display();
+        }
+        
+        pop();
+      }
+      
+      // Update name transition animation
+      if (nameTransitionActive) {
+        nameTransitionProgress += 0.03;
+        if (nameTransitionProgress >= 1) {
+          nameTransitionProgress = 0;
+          nameTransitionActive = false;
+        }
+      }
+      
+      // Draw solar system name in upper left corner with flashy transition
       push();
-      fill(200, 220, 255, 180);
       noStroke();
       textAlign(LEFT, TOP);
       textSize(24);
       textFont('PT Sans');
-      text(solarSystemName, 30, 30);
       
-      // Add subtle glow
-      fill(255, 255, 255, 100);
-      text(solarSystemName, 30, 30);
+      if (nameTransitionActive) {
+        // Letter-by-letter flip animation
+        let displayText = '';
+        let maxLen = max(oldSolarSystemName.length, solarSystemName.length);
+        
+        for (let i = 0; i < maxLen; i++) {
+          let letterProgress = constrain((nameTransitionProgress * maxLen) - i, 0, 1);
+          
+          if (letterProgress < 0.5) {
+            // Show old letter with flip effect
+            if (i < oldSolarSystemName.length) {
+              push();
+              translate(30 + textWidth(displayText), 30);
+              scale(1 - letterProgress * 2, 1); // Horizontal flip
+              fill(200, 220, 255, 180 * (1 - letterProgress * 2));
+              text(oldSolarSystemName[i], 0, 0);
+              pop();
+            }
+          } else {
+            // Show new letter with flip effect
+            if (i < solarSystemName.length) {
+              push();
+              translate(30 + textWidth(displayText), 30);
+              scale((letterProgress - 0.5) * 2, 1); // Horizontal flip in
+              let alpha = 180 * ((letterProgress - 0.5) * 2);
+              fill(200, 220, 255, alpha);
+              text(solarSystemName[i], 0, 0);
+              // Add glow for new letters
+              fill(255, 255, 255, alpha * 0.5);
+              text(solarSystemName[i], 0, 0);
+              pop();
+            }
+          }
+          
+          // Add to display text for width calculation
+          if (letterProgress >= 0.5 && i < solarSystemName.length) {
+            displayText += solarSystemName[i];
+          } else if (letterProgress < 0.5 && i < oldSolarSystemName.length) {
+            displayText += oldSolarSystemName[i];
+          }
+        }
+      } else {
+        // Normal display
+        fill(200, 220, 255, 180);
+        text(solarSystemName, 30, 30);
+        
+        // Add subtle glow
+        fill(255, 255, 255, 100);
+        text(solarSystemName, 30, 30);
+      }
       pop();
       
       // Update and draw planet info panel animation
@@ -630,6 +1080,18 @@
       updateConstellationPanelAnimation();
       if (constellationPanelAnimState !== 'closed') {
         drawConstellationInfoPanel();
+      }
+      
+      // Update and draw star info panel
+      updateStarPanelAnimation();
+      if (starPanelAnimState !== 'closed') {
+        drawStarInfoPanel();
+      }
+      
+      // Update and draw pulsar info panel
+      updatePulsarPanelAnimation();
+      if (pulsarPanelAnimState !== 'closed') {
+        drawPulsarInfoPanel();
       }
     }
     
@@ -656,6 +1118,121 @@
       }
     }
     
+    function updateStarPanelAnimation() {
+      if (starPanelAnimState === 'opening') {
+        starPanelAnimProgress += 0.08;
+        if (starPanelAnimProgress >= 1) {
+          starPanelAnimProgress = 1;
+          starPanelAnimState = 'open';
+        }
+      } else if (starPanelAnimState === 'closing') {
+        starPanelAnimProgress -= 0.08;
+        if (starPanelAnimProgress <= 0) {
+          starPanelAnimProgress = 0;
+          starPanelAnimState = 'closed';
+          selectedStar = false;
+        }
+      }
+    }
+    
+    function updatePulsarPanelAnimation() {
+      if (pulsarPanelAnimState === 'opening') {
+        pulsarPanelAnimProgress += 0.08;
+        if (pulsarPanelAnimProgress >= 1) {
+          pulsarPanelAnimProgress = 1;
+          pulsarPanelAnimState = 'open';
+        }
+      } else if (pulsarPanelAnimState === 'closing') {
+        pulsarPanelAnimProgress -= 0.08;
+        if (pulsarPanelAnimProgress <= 0) {
+          pulsarPanelAnimProgress = 0;
+          pulsarPanelAnimState = 'closed';
+          selectedPulsar = null;
+        }
+      }
+    }
+    
+    function updateTransition() {
+      // Adjust speed based on phase - phase 4 is slower for the "Entering" text display
+      let currentSpeed = (transitionPhase === 4) ? 0.008 : transitionSpeed; // 2 seconds at 60fps
+      transitionProgress += currentSpeed;
+      
+      if (transitionProgress >= 1) {
+        transitionProgress = 0;
+        transitionPhase++;
+      }
+      
+      // Phase 0: Fade out solar system completely
+      if (transitionPhase === 0) {
+        systemFade = transitionProgress;
+        if (transitionProgress >= 0.90) {
+          // Clear old system data early to ensure complete fade
+          planets = [];
+          asteroidBelt = null;
+          flameParticles = [];
+          solarFlares = [];
+        }
+      }
+      // Phase 1: Fade out all constellations EXCEPT the selected one
+      else if (transitionPhase === 1) {
+        otherConstellationsFade = transitionProgress;
+      }
+      // Phase 2: Zoom selected constellation to fill screen
+      else if (transitionPhase === 2) {
+        let targetZoom = 8; // Much larger zoom to fill screen
+        constellationZoom = 1 + (targetZoom - 1) * transitionProgress;
+        // Offsets are calculated in the draw function based on selected star position
+      }
+      // Phase 3: Fade out all stars in constellation except selected one
+      else if (transitionPhase === 3) {
+        selectedConstellationFade = transitionProgress;
+      }
+      // Phase 4: Display "Entering [star name] System" text and wait
+      else if (transitionPhase === 4) {
+        // Fade in text at the start
+        enteringTextFade = min(transitionProgress * 3, 1);
+      }
+      // Phase 5: Fade out "Entering..." text and selected star
+      else if (transitionPhase === 5) {
+        enteringTextFade = 1 - transitionProgress;
+      }
+      // Phase 6: Generate new system
+      else if (transitionPhase === 6) {
+        if (transitionProgress === 0) { // Only on first frame of phase 6
+          // Store old name and trigger name animation
+          oldSolarSystemName = solarSystemName;
+          // Generate new system
+          generateSystem();
+          systemFade = 1; // Start with system invisible, will fade in during phase 7
+          // Start name transition animation
+          nameTransitionActive = true;
+          nameTransitionProgress = 0;
+        }
+        // Zoom back to normal
+        constellationZoom = 8 - (8 - 1) * transitionProgress;
+      }
+      // Phase 7: Fade in new system and fade out old constellation
+      else if (transitionPhase === 7) {
+        systemFade = 1 - transitionProgress; // Fade in new system
+        // Old constellation fades out in drawConstellations based on constellationAlpha
+      }
+      // Phase 8: Reset and complete
+      else if (transitionPhase === 8) {
+        isTransitioning = false;
+        transitionPhase = 0;
+        transitionProgress = 0;
+        constellationZoom = 1;
+        constellationOffsetX = 0;
+        constellationOffsetY = 0;
+        systemFade = 0;
+        otherConstellationsFade = 0;
+        selectedConstellationFade = 0;
+        enteringTextFade = 0;
+        selectedConstellationStar = null;
+        selectedConstellation = null;
+      }
+    }
+    
     function updateConstellationPanelAnimation() {
       if (constellationPanelAnimState === 'opening') {
         constellationPanelAnimProgress += 0.08;
@@ -668,9 +1245,446 @@
         if (constellationPanelAnimProgress <= 0) {
           constellationPanelAnimProgress = 0;
           constellationPanelAnimState = 'closed';
-          selectedConstellation = null;
+          // Don't clear selectedConstellation if we're transitioning to a new system
+          if (!isTransitioning) {
+            selectedConstellation = null;
+          }
         }
       }
+    }
+    
+    function drawStarInfoPanel() {
+      if (!selectedStar) return;
+      
+      push();
+      
+      let panelX = width - 300;
+      let panelY = 20;
+      let panelWidth = 260;
+      let panelHeight = 680;
+      
+      let easeProgress = starPanelAnimProgress * starPanelAnimProgress * (3 - 2 * starPanelAnimProgress);
+      
+      let pixelSize = 8;
+      let revealHeight = panelHeight * easeProgress;
+      
+      // Clip the panel background to animated height
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(panelX, panelY, panelWidth, revealHeight);
+      drawingContext.clip();
+      
+      // Panel shadow
+      fill(0, 0, 0, 100 * easeProgress);
+      rect(panelX + 5, panelY + 5, panelWidth, panelHeight, 10);
+      
+      // Panel background
+      fill(20, 25, 40, 240 * easeProgress);
+      rect(panelX, panelY, panelWidth, panelHeight, 10);
+      
+      // Panel border with star color
+      noFill();
+      stroke(starColors.hot.r, starColors.hot.g, starColors.hot.b, 150 * easeProgress);
+      strokeWeight(2);
+      rect(panelX, panelY, panelWidth, panelHeight, 10);
+      
+      drawingContext.restore();
+      
+      // Digital pixel reveal effect
+      if (starPanelAnimProgress < 1) {
+        noStroke();
+        for (let y = revealHeight; y < revealHeight + pixelSize * 3; y += pixelSize) {
+          for (let x = 0; x < panelWidth; x += pixelSize) {
+            if (random() > 0.3) {
+              fill(starColors.hot.r, starColors.hot.g, starColors.hot.b, random(50, 150));
+              rect(panelX + x, panelY + y, pixelSize - 1, pixelSize - 1);
+            }
+          }
+        }
+      }
+      
+      // Star preview
+      let previewX = panelX + panelWidth / 2;
+      let previewY = panelY + 130;
+      let previewSize = Math.min(sunSize * 1.5, 100);
+      
+      push();
+      translate(previewX, previewY);
+      
+      // Glow layers
+      for (let i = previewSize * 1.5; i > 0; i -= 6) {
+        fill(starColors.outer.r, starColors.outer.g, starColors.outer.b, 15);
+        noStroke();
+        ellipse(0, 0, i, i);
+      }
+      
+      // Star core
+      fill(starColors.core.r, starColors.core.g, starColors.core.b);
+      ellipse(0, 0, previewSize, previewSize);
+      
+      // Middle layer
+      fill(starColors.middle.r, starColors.middle.g, starColors.middle.b);
+      ellipse(0, 0, previewSize * 0.85, previewSize * 0.85);
+      
+      // Hot core
+      fill(starColors.hot.r, starColors.hot.g, starColors.hot.b);
+      ellipse(0, 0, previewSize * 0.69, previewSize * 0.69);
+      
+      // Bright center
+      fill(starColors.center.r, starColors.center.g, starColors.center.b, 200);
+      ellipse(0, 0, previewSize * 0.46, previewSize * 0.46);
+      
+      pop();
+      
+      // Clip for text content
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(panelX, panelY, panelWidth, revealHeight);
+      drawingContext.clip();
+      
+      // Star name title
+      noStroke();
+      textAlign(LEFT, TOP);
+      textSize(22);
+      textFont('PT Sans');
+      // Drop shadow
+      fill(0, 0, 0, 150);
+      text(starType, panelX + 22, panelY + 17);
+      // Main text
+      fill(255);
+      text(starType, panelX + 20, panelY + 15);
+      
+      // Divider line
+      stroke(starColors.hot.r, starColors.hot.g, starColors.hot.b, 100);
+      strokeWeight(1);
+      line(panelX + 20, panelY + 50, panelX + panelWidth - 20, panelY + 50);
+      
+      // Details
+      let detailY = panelY + 220;
+      let lineHeight = 20;
+      textAlign(LEFT, TOP);
+      textSize(11);
+      
+      // Star Type
+      fill(150, 180, 255);
+      text("Star Type:", panelX + 20, detailY);
+      fill(255);
+      text(starType, panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Diameter
+      fill(150, 180, 255);
+      text("Diameter:", panelX + 20, detailY);
+      fill(255);
+      let starDiameter = Math.round(sunSize * 10000);
+      text(starDiameter.toLocaleString() + " km", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Temperature
+      fill(150, 180, 255);
+      text("Surface Temperature:", panelX + 20, detailY);
+      fill(255);
+      text(Math.round(starTemperature).toLocaleString() + " K", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Age
+      fill(150, 180, 255);
+      text("Age:", panelX + 20, detailY);
+      fill(255);
+      text(starAge.toFixed(2) + " billion years", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Luminosity
+      fill(150, 180, 255);
+      text("Luminosity:", panelX + 20, detailY);
+      fill(255);
+      if (starLuminosity >= 1) {
+        text(starLuminosity.toFixed(1) + "x Sun", panelX + 20, detailY + 15);
+      } else {
+        text(starLuminosity.toFixed(4) + "x Sun", panelX + 20, detailY + 15);
+      }
+      
+      detailY += lineHeight * 2;
+      
+      // Mass
+      fill(150, 180, 255);
+      text("Mass:", panelX + 20, detailY);
+      fill(255);
+      text(starMass.toFixed(2) + " solar masses", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Goldilocks Zone
+      fill(150, 180, 255);
+      text("Habitable Zone:", panelX + 20, detailY);
+      fill(255);
+      let goldilocksZone = getGoldilocksZone(starType);
+      let innerKm = (goldilocksZone.inner * 1.5).toFixed(1);
+      let outerKm = (goldilocksZone.outer * 1.5).toFixed(1);
+      text(innerKm + " - " + outerKm, panelX + 20, detailY + 15);
+      text("million km", panelX + 20, detailY + 27);
+      
+      detailY += lineHeight * 3;
+      
+      // Number of planets
+      fill(150, 180, 255);
+      text("Planets in System:", panelX + 20, detailY);
+      fill(255);
+      text(planets.length, panelX + 20, detailY + 15);
+      
+      // Instruction text at bottom
+      detailY = panelY + panelHeight - 35;
+      fill(150, 150, 150);
+      textAlign(CENTER, TOP);
+      textSize(10);
+      text("Click outside panel to close", panelX + panelWidth/2, detailY);
+      
+      textAlign(LEFT, TOP);
+      
+      // Close button
+      let closeX = panelX + panelWidth - 40;
+      let closeY = panelY + 10;
+      let closeSize = 30;
+      fill(150, 50, 50, 200 * easeProgress);
+      noStroke();
+      ellipse(closeX + closeSize/2, closeY + closeSize/2, closeSize, closeSize);
+      stroke(255, 255 * easeProgress);
+      strokeWeight(2);
+      line(closeX + 10, closeY + 10, closeX + 20, closeY + 20);
+      line(closeX + 20, closeY + 10, closeX + 10, closeY + 20);
+      
+      drawingContext.restore();
+      pop();
+    }
+    
+    function drawPulsarInfoPanel() {
+      if (!selectedPulsar) return;
+      
+      push();
+      
+      let panelX = width - 300;
+      let panelY = 20;
+      let panelWidth = 260;
+      let panelHeight = 680;
+      
+      let easeProgress = pulsarPanelAnimProgress * pulsarPanelAnimProgress * (3 - 2 * pulsarPanelAnimProgress);
+      
+      let pixelSize = 8;
+      let revealHeight = panelHeight * easeProgress;
+      
+      // Clip the panel background to animated height
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(panelX, panelY, panelWidth, revealHeight);
+      drawingContext.clip();
+      
+      // Panel shadow
+      fill(0, 0, 0, 100 * easeProgress);
+      rect(panelX + 5, panelY + 5, panelWidth, panelHeight, 10);
+      
+      // Panel background
+      fill(20, 25, 40, 240 * easeProgress);
+      rect(panelX, panelY, panelWidth, panelHeight, 10);
+      
+      // Panel border with pulsar color
+      noFill();
+      stroke(selectedPulsar.color.r, selectedPulsar.color.g, selectedPulsar.color.b, 150 * easeProgress);
+      strokeWeight(2);
+      rect(panelX, panelY, panelWidth, panelHeight, 10);
+      
+      drawingContext.restore();
+      
+      // Digital pixel reveal effect
+      if (pulsarPanelAnimProgress < 1) {
+        noStroke();
+        for (let y = revealHeight; y < revealHeight + pixelSize * 3; y += pixelSize) {
+          for (let x = 0; x < panelWidth; x += pixelSize) {
+            if (random() > 0.3) {
+              fill(selectedPulsar.color.r, selectedPulsar.color.g, selectedPulsar.color.b, random(50, 150));
+              rect(panelX + x, panelY + y, pixelSize - 1, pixelSize - 1);
+            }
+          }
+        }
+      }
+      
+      // Pulsar preview with rotating beams
+      let previewX = panelX + panelWidth / 2;
+      let previewY = panelY + 130;
+      let previewSize = 60;
+      
+      push();
+      translate(previewX, previewY);
+      
+      // Rotating beams
+      let pulseIntensity = (sin(frameCount * 0.1) + 1) / 2;
+      for (let i = 0; i < 2; i++) {
+        let beamAngle = frameCount * 0.08 + i * PI;
+        let beamLength = 30 + pulseIntensity * 10;
+        
+        push();
+        rotate(beamAngle);
+        for (let j = 0; j < 6; j++) {
+          let progress = j / 6;
+          let beamAlpha = (1 - progress) * pulseIntensity * 100;
+          fill(selectedPulsar.color.r, selectedPulsar.color.g, selectedPulsar.color.b, beamAlpha);
+          let beamWidth = (6 - j) * 2;
+          ellipse(beamLength * progress, 0, beamWidth, beamWidth * 0.5);
+        }
+        pop();
+      }
+      
+      // Glow layers
+      fill(selectedPulsar.color.r, selectedPulsar.color.g, selectedPulsar.color.b, 30);
+      ellipse(0, 0, previewSize, previewSize);
+      fill(selectedPulsar.color.r, selectedPulsar.color.g, selectedPulsar.color.b, 60);
+      ellipse(0, 0, previewSize * 0.7, previewSize * 0.7);
+      
+      // Pulsing core
+      let coreAlpha = 150 + pulseIntensity * 105;
+      fill(255, 255, 255, coreAlpha);
+      ellipse(0, 0, previewSize * 0.4, previewSize * 0.4);
+      fill(255, 255, 255, coreAlpha);
+      ellipse(0, 0, previewSize * 0.2, previewSize * 0.2);
+      
+      pop();
+      
+      // Clip for text content
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(panelX, panelY, panelWidth, revealHeight);
+      drawingContext.clip();
+      
+      // Pulsar name title
+      noStroke();
+      textAlign(LEFT, TOP);
+      textSize(22);
+      textFont('PT Sans');
+      // Drop shadow
+      fill(0, 0, 0, 150);
+      text(selectedPulsar.name, panelX + 22, panelY + 17);
+      // Main text
+      fill(255);
+      text(selectedPulsar.name, panelX + 20, panelY + 15);
+      
+      // Divider line
+      stroke(selectedPulsar.color.r, selectedPulsar.color.g, selectedPulsar.color.b, 100);
+      strokeWeight(1);
+      line(panelX + 20, panelY + 50, panelX + panelWidth - 20, panelY + 50);
+      
+      // Details
+      let detailY = panelY + 220;
+      let lineHeight = 20;
+      textAlign(LEFT, TOP);
+      textSize(11);
+      
+      // Type
+      fill(150, 180, 255);
+      text("Type:", panelX + 20, detailY);
+      fill(255);
+      let pulsarType = selectedPulsar.rotationPeriod < 0.01 ? "Millisecond Pulsar" : "Regular Pulsar";
+      text(pulsarType, panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Rotation Period
+      fill(150, 180, 255);
+      text("Rotation Period:", panelX + 20, detailY);
+      fill(255);
+      if (selectedPulsar.rotationPeriod < 0.01) {
+        text((selectedPulsar.rotationPeriod * 1000).toFixed(2) + " milliseconds", panelX + 20, detailY + 15);
+      } else {
+        text(selectedPulsar.rotationPeriod.toFixed(3) + " seconds", panelX + 20, detailY + 15);
+      }
+      
+      detailY += lineHeight * 2;
+      
+      // Magnetic Field
+      fill(150, 180, 255);
+      text("Magnetic Field:", panelX + 20, detailY);
+      fill(255);
+      text(selectedPulsar.magneticField.toExponential(2) + " Gauss", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Age
+      fill(150, 180, 255);
+      text("Age:", panelX + 20, detailY);
+      fill(255);
+      if (selectedPulsar.age >= 1000) {
+        text((selectedPulsar.age / 1000).toFixed(1) + " billion years", panelX + 20, detailY + 15);
+      } else {
+        text(selectedPulsar.age.toFixed(0) + " million years", panelX + 20, detailY + 15);
+      }
+      
+      detailY += lineHeight * 2;
+      
+      // Distance
+      fill(150, 180, 255);
+      text("Distance:", panelX + 20, detailY);
+      fill(255);
+      text(Math.round(selectedPulsar.distance).toLocaleString() + " light years", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Mass
+      fill(150, 180, 255);
+      text("Mass:", panelX + 20, detailY);
+      fill(255);
+      text(selectedPulsar.mass.toFixed(2) + " solar masses", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Radius
+      fill(150, 180, 255);
+      text("Radius:", panelX + 20, detailY);
+      fill(255);
+      text(selectedPulsar.radius.toFixed(1) + " km", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Surface Temperature
+      fill(150, 180, 255);
+      text("Surface Temperature:", panelX + 20, detailY);
+      fill(255);
+      text((selectedPulsar.temperature / 1000000).toFixed(1) + " million K", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Description
+      fill(150, 180, 255);
+      text("Classification:", panelX + 20, detailY);
+      fill(200, 200, 200);
+      textSize(10);
+      let description = "Neutron star remnant of a supernova explosion, spinning rapidly and emitting beams of electromagnetic radiation.";
+      text(description, panelX + 20, detailY + 15, panelWidth - 40, 60);
+      
+      // Instruction text at bottom
+      detailY = panelY + panelHeight - 35;
+      fill(150, 150, 150);
+      textAlign(CENTER, TOP);
+      textSize(10);
+      text("Click outside panel to close", panelX + panelWidth/2, detailY);
+      
+      textAlign(LEFT, TOP);
+      
+      // Close button
+      let closeX = panelX + panelWidth - 40;
+      let closeY = panelY + 10;
+      let closeSize = 30;
+      fill(150, 50, 50, 200 * easeProgress);
+      noStroke();
+      ellipse(closeX + closeSize/2, closeY + closeSize/2, closeSize, closeSize);
+      stroke(255, 255 * easeProgress);
+      strokeWeight(2);
+      line(closeX + 10, closeY + 10, closeX + 20, closeY + 20);
+      line(closeX + 20, closeY + 10, closeX + 10, closeY + 20);
+      
+      drawingContext.restore();
+      pop();
     }
     
     function drawPlanetInfoPanel() {
@@ -682,7 +1696,7 @@
       let panelX = width - 300; // 20px margin from right edge
       let panelY = 20;
       let panelWidth = 260;
-      let panelHeight = 680; // Increased height to fit moon names
+      let panelHeight = 720; // Increased height to fit all details
       
       // Easing function for smooth animation
       let easeProgress = panelAnimProgress * panelAnimProgress * (3 - 2 * panelAnimProgress);
@@ -819,11 +1833,15 @@
       drawingContext.clip();
       
       // Planet name title
-      fill(255);
       noStroke();
       textAlign(LEFT, TOP);
       textSize(22);
       textFont('PT Sans');
+      // Drop shadow
+      fill(0, 0, 0, 150);
+      text(selectedPlanet.name, panelX + 22, panelY + 17);
+      // Main text
+      fill(255);
       text(selectedPlanet.name, panelX + 20, panelY + 15);
       
       // Divider line
@@ -841,7 +1859,9 @@
       fill(150, 180, 255);
       text("Distance from Star:", panelX + 20, detailY);
       fill(255);
-      text(Math.round(selectedPlanet.distance) + " units", panelX + 20, detailY + 15);
+      // Convert distance units to millions of kilometers (scale: 1 unit = ~1 million km)
+      let distanceKm = (selectedPlanet.distance * 1.5).toFixed(1);
+      text(distanceKm + " million km", panelX + 20, detailY + 15);
       
       detailY += lineHeight * 2;
       
@@ -849,7 +1869,9 @@
       fill(150, 180, 255);
       text("Diameter:", panelX + 20, detailY);
       fill(255);
-      text(Math.round(selectedPlanet.size) + " units", panelX + 20, detailY + 15);
+      // Convert diameter to kilometers (scale: 1 unit = ~250 km)
+      let diameterKm = Math.round(selectedPlanet.size * 250);
+      text(diameterKm.toLocaleString() + " km", panelX + 20, detailY + 15);
       
       detailY += lineHeight * 2;
       
@@ -857,8 +1879,19 @@
       fill(150, 180, 255);
       text("Orbital Period:", panelX + 20, detailY);
       fill(255);
-      let period = Math.round(TWO_PI / selectedPlanet.speed);
-      text(period + " frames", panelX + 20, detailY + 15);
+      // Convert frames to Earth years (approximate based on speed)
+      let period = TWO_PI / selectedPlanet.speed;
+      let earthYears = (period / 60 / 2).toFixed(2); // Convert frames to approximate years
+      text(earthYears + " Earth years", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Length of day (rotational speed)
+      fill(150, 180, 255);
+      text("Length of Day:", panelX + 20, detailY);
+      fill(255);
+      let dayLength = selectedPlanet.rotationSpeed.toFixed(1);
+      text(dayLength + " Earth hours", panelX + 20, detailY + 15);
       
       detailY += lineHeight * 2;
       
@@ -1024,22 +2057,34 @@
       // Human habitable icon - always shown (grayed out if not applicable)
       let isHabitable = selectedPlanet.isHumanHabitable();
       
-      // Icon with reduced opacity and grayscale when not supported
+      // Draw custom human icon instead of emoji
+      push();
       noStroke();
-      textAlign(CENTER, CENTER);
-      textSize(symbolSize);
       
-      // Use globalAlpha and filter for graying out
       if (isHabitable) {
-        drawingContext.globalAlpha = 1.0;
-        drawingContext.filter = 'none';
+        // Light tan color for habitable
+        fill(210, 180, 140); // Tan color
       } else {
-        drawingContext.globalAlpha = 0.3;
-        drawingContext.filter = 'grayscale(100%)';
+        // Grayed out for non-habitable
+        fill(100, 100, 100, 80);
       }
-      text('👤', symbolX, symbolY);
-      drawingContext.globalAlpha = 1.0;
-      drawingContext.filter = 'none';
+      
+      // Draw simple person icon
+      // Head
+      ellipse(symbolX, symbolY - 6, 8, 8);
+      // Body
+      beginShape();
+      vertex(symbolX - 6, symbolY + 2);
+      vertex(symbolX - 4, symbolY - 2);
+      vertex(symbolX + 4, symbolY - 2);
+      vertex(symbolX + 6, symbolY + 2);
+      vertex(symbolX + 6, symbolY + 8);
+      vertex(symbolX - 6, symbolY + 8);
+      endShape(CLOSE);
+      // Arms
+      rect(symbolX - 8, symbolY, 16, 3);
+      
+      pop();
       
       // Tooltip-like label on hover
       if (dist(mouseX, mouseY, symbolX, symbolY) < 14) {
@@ -1131,11 +2176,15 @@
       drawingContext.clip();
       
       // Constellation name title
-      fill(255);
       noStroke();
       textAlign(LEFT, TOP);
       textSize(22);
       textFont('PT Sans');
+      // Drop shadow
+      fill(0, 0, 0, 150);
+      text(selectedConstellation.name, panelX + 22, panelY + 17);
+      // Main text
+      fill(255);
       text(selectedConstellation.name, panelX + 20, panelY + 15);
       
       // Divider line
@@ -1246,11 +2295,23 @@
         
         // Check if mouse is hovering over this star name
         let textBounds = textWidth(`• ${starName}`);
-        if (mouseX >= nameX && mouseX <= nameX + textBounds &&
-            mouseY >= nameY && mouseY <= nameY + 12) {
+        let isHovering = mouseX >= nameX && mouseX <= nameX + textBounds &&
+                         mouseY >= nameY && mouseY <= nameY + 12;
+        
+        if (isHovering) {
           hoveredStarIndex = i;
           fill(255, 255, 150); // Highlight text
           cursor(HAND);
+          
+          // Check for click to initiate transition
+          if (mouseIsPressed && !isTransitioning) {
+            isTransitioning = true;
+            transitionPhase = 0;
+            transitionProgress = 0;
+            selectedConstellationStar = selectedConstellation.stars[i];
+            // Close the panel
+            constellationPanelAnimState = 'closing';
+          }
         } else {
           fill(255);
         }
@@ -1312,6 +2373,23 @@
     }
 
     function drawSun() {
+      // Create solar flares periodically (every 15-30 seconds)
+      if (millis() - lastSolarFlare > random(15000, 30000)) {
+        createSolarFlare();
+        lastSolarFlare = millis();
+      }
+      
+      // Update and draw solar flares (draw first so they appear behind sun)
+      for (let i = solarFlares.length - 1; i >= 0; i--) {
+        let flare = solarFlares[i];
+        flare.update();
+        flare.display();
+        
+        if (flare.isDead()) {
+          solarFlares.splice(i, 1);
+        }
+      }
+      
       // Update and draw flame particles
       for (let i = flameParticles.length - 1; i >= 0; i--) {
         let p = flameParticles[i];
@@ -1391,6 +2469,128 @@
           return this.life <= 0;
         }
       };
+    }
+    
+    function createSolarFlare() {
+      let angle = random(TWO_PI);
+      let numParticles = int(random(15, 30));
+      let flareParticles = [];
+      
+      // Create a burst of particles in a cone
+      for (let i = 0; i < numParticles; i++) {
+        let particleAngle = angle + random(-0.3, 0.3);
+        let speed = random(2, 5);
+        let startRadius = sunSize * 0.5;
+        
+        flareParticles.push({
+          x: cos(angle) * startRadius,
+          y: sin(angle) * startRadius,
+          vx: cos(particleAngle) * speed,
+          vy: sin(particleAngle) * speed,
+          life: 1.0,
+          size: random(8, 15),
+          hue: random(0, 0.1) // Slight color variation
+        });
+      }
+      
+      return {
+        particles: flareParticles,
+        age: 0,
+        maxAge: 60,
+        update: function() {
+          this.age++;
+          for (let p of this.particles) {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.98; // Slow down
+            p.vy *= 0.98;
+            p.life = 1 - (this.age / this.maxAge);
+          }
+        },
+        display: function() {
+          for (let p of this.particles) {
+            if (p.life > 0) {
+              let alpha = p.life * 255;
+              // Use star's flame colors for the flare
+              let coreColor = starColors.flameInner;
+              let glowColor = starColors.corona;
+              
+              // Bright core using star's inner flame color
+              fill(coreColor.r, coreColor.g, coreColor.b, alpha * 0.8);
+              noStroke();
+              ellipse(p.x, p.y, p.size * p.life, p.size * p.life);
+              
+              // Add glow using star's corona color
+              fill(glowColor.r, glowColor.g, glowColor.b, alpha * 0.3);
+              ellipse(p.x, p.y, p.size * p.life * 2, p.size * p.life * 2);
+            }
+          }
+        },
+        isDead: function() {
+          return this.age >= this.maxAge;
+        }
+      };
+    }
+    
+    function createSolarFlare() {
+      let angle = random(TWO_PI);
+      let numParticles = int(random(15, 30));
+      let flareParticles = [];
+      
+      // Create a burst of particles in a cone
+      for (let i = 0; i < numParticles; i++) {
+        let particleAngle = angle + random(-0.3, 0.3);
+        let speed = random(2, 5);
+        let startRadius = sunSize * 0.5;
+        
+        flareParticles.push({
+          x: cos(angle) * startRadius,
+          y: sin(angle) * startRadius,
+          vx: cos(particleAngle) * speed,
+          vy: sin(particleAngle) * speed,
+          life: 1.0,
+          size: random(8, 15),
+          hue: random(0, 0.1) // Slight color variation
+        });
+      }
+      
+      solarFlares.push({
+        particles: flareParticles,
+        age: 0,
+        maxAge: 60,
+        update: function() {
+          this.age++;
+          for (let p of this.particles) {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.98; // Slow down
+            p.vy *= 0.98;
+            p.life = 1 - (this.age / this.maxAge);
+          }
+        },
+        display: function() {
+          for (let p of this.particles) {
+            if (p.life > 0) {
+              let alpha = p.life * 255;
+              // Use star's flame colors for the flare
+              let coreColor = starColors.flameInner;
+              let glowColor = starColors.corona;
+              
+              // Bright core using star's inner flame color
+              fill(coreColor.r, coreColor.g, coreColor.b, alpha * 0.8);
+              noStroke();
+              ellipse(p.x, p.y, p.size * p.life, p.size * p.life);
+              
+              // Add glow using star's corona color
+              fill(glowColor.r, glowColor.g, glowColor.b, alpha * 0.3);
+              ellipse(p.x, p.y, p.size * p.life * 2, p.size * p.life * 2);
+            }
+          }
+        },
+        isDead: function() {
+          return this.age >= this.maxAge;
+        }
+      });
     }
     
     function drawStars() {
@@ -1589,39 +2789,182 @@
       }
     }
     
+    function drawGalaxies() {
+      for (let galaxy of galaxies) {
+        push();
+        translate(galaxy.x, galaxy.y);
+        rotate(galaxy.rotation);
+        galaxy.rotation += galaxy.rotationSpeed;
+        scale(galaxy.scale);
+        
+        noStroke();
+        
+        if (galaxy.type === 'spiral') {
+          // Draw spiral arms
+          for (let particle of galaxy.armParticles) {
+            let alpha = particle.brightness * 120;
+            fill(galaxy.color.r, galaxy.color.g, galaxy.color.b, alpha);
+            ellipse(particle.x, particle.y, particle.size, particle.size);
+            
+            // Add glow layer
+            fill(galaxy.color.r, galaxy.color.g, galaxy.color.b, alpha * 0.3);
+            ellipse(particle.x, particle.y, particle.size * 2, particle.size * 2);
+          }
+          
+          // Draw central bulge
+          for (let particle of galaxy.bulgeParticles) {
+            let alpha = particle.brightness * 180;
+            fill(255, 240, 200, alpha);
+            ellipse(particle.x, particle.y, particle.size, particle.size);
+            
+            // Bright core glow
+            fill(255, 250, 220, alpha * 0.4);
+            ellipse(particle.x, particle.y, particle.size * 3, particle.size * 3);
+          }
+        } else {
+          // Draw elliptical galaxy
+          for (let particle of galaxy.particles) {
+            let alpha = particle.brightness * 100;
+            fill(galaxy.color.r, galaxy.color.g, galaxy.color.b, alpha);
+            ellipse(particle.x, particle.y, particle.size, particle.size);
+            
+            // Soft glow
+            fill(galaxy.color.r, galaxy.color.g, galaxy.color.b, alpha * 0.25);
+            ellipse(particle.x, particle.y, particle.size * 2.5, particle.size * 2.5);
+          }
+        }
+        
+        pop();
+      }
+    }
+    
+    function drawPulsars() {
+      for (let pulsar of pulsars) {
+        push();
+        translate(pulsar.x, pulsar.y);
+        
+        // Update pulse and rotation
+        pulsar.pulsePhase += pulsar.pulseSpeed;
+        pulsar.beamAngle += pulsar.beamRotationSpeed;
+        
+        // Pulsing core intensity
+        let pulseIntensity = (sin(pulsar.pulsePhase) + 1) / 2; // 0 to 1
+        let coreAlpha = 150 + pulseIntensity * 105; // 150 to 255
+        
+        noStroke();
+        
+        // Rotating beams of radiation
+        for (let i = 0; i < 2; i++) { // Two opposing beams
+          let beamAngle = pulsar.beamAngle + i * PI;
+          let beamLength = 40 + pulseIntensity * 20;
+          
+          push();
+          rotate(beamAngle);
+          
+          // Beam gradient using multiple ellipses
+          for (let j = 0; j < 8; j++) {
+            let progress = j / 8;
+            let beamAlpha = (1 - progress) * pulseIntensity * 120;
+            fill(pulsar.color.r, pulsar.color.g, pulsar.color.b, beamAlpha);
+            let beamWidth = (8 - j) * 2;
+            ellipse(beamLength * progress, 0, beamWidth, beamWidth * 0.5);
+          }
+          pop();
+        }
+        
+        // Outer glow ring
+        fill(pulsar.color.r, pulsar.color.g, pulsar.color.b, 40 * pulseIntensity);
+        ellipse(0, 0, pulsar.size * 4, pulsar.size * 4);
+        
+        // Middle glow
+        fill(pulsar.color.r, pulsar.color.g, pulsar.color.b, 80 * pulseIntensity);
+        ellipse(0, 0, pulsar.size * 2.5, pulsar.size * 2.5);
+        
+        // Bright pulsing core
+        fill(255, 255, 255, coreAlpha);
+        ellipse(0, 0, pulsar.size, pulsar.size);
+        
+        // Ultra bright center
+        fill(255, 255, 255, coreAlpha);
+        ellipse(0, 0, pulsar.size * 0.5, pulsar.size * 0.5);
+        
+        pop();
+      }
+    }
+    
     function drawConstellations() {
       for (let constellation of constellations) {
+        // Determine if this constellation should be faded during transition
+        let isSelectedConstellation = constellation === selectedConstellation;
+        let constellationAlpha = 1;
+        
+        if (isTransitioning) {
+          if (!isSelectedConstellation) {
+            // Fade out OTHER constellations (not the selected one)
+            constellationAlpha = 1 - otherConstellationsFade;
+          } else {
+            // Selected constellation stays visible through phases 0-4, fades in phase 5
+            if (transitionPhase >= 7) {
+              constellationAlpha = 1 - transitionProgress;
+            } else if (transitionPhase === 5) {
+              constellationAlpha = 1 - transitionProgress; // Fade out with entering text
+            } else {
+              constellationAlpha = 1;
+            }
+          }
+        }
+        
+        if (constellationAlpha <= 0) continue;
+        
         // Enhanced colors when hovered
-        let lineAlpha = constellation.hovered ? 180 : 80;
+        let lineAlpha = (constellation.hovered ? 180 : 80) * constellationAlpha;
         let lineWeight = constellation.hovered ? 2 : 1;
         let starSize = constellation.hovered ? 6 : 4;
         let starBrightness = constellation.hovered ? 255 : 200;
         
         // Draw constellation lines - connect all consecutive stars
-        stroke(100, 100, 150, lineAlpha);
-        strokeWeight(lineWeight);
+        // In phase 3+, only show lines if not selected constellation
+        let showLines = !isTransitioning || !isSelectedConstellation || transitionPhase < 3;
         
-        // Add glow effect when hovered
-        if (constellation.hovered) {
-          stroke(150, 150, 255, 120);
-        }
-        
-        for (let i = 0; i < constellation.stars.length - 1; i++) {
-          line(constellation.stars[i].x, constellation.stars[i].y,
-               constellation.stars[i + 1].x, constellation.stars[i + 1].y);
-        }
-        
-        // Close the constellation by connecting last star to first
-        if (constellation.stars.length > 2) {
-          line(constellation.stars[constellation.stars.length - 1].x, 
-               constellation.stars[constellation.stars.length - 1].y,
-               constellation.stars[0].x, constellation.stars[0].y);
+        if (showLines) {
+          stroke(100, 100, 150, lineAlpha);
+          strokeWeight(lineWeight);
+          
+          // Add glow effect when hovered
+          if (constellation.hovered) {
+            stroke(150, 150, 255, 120 * constellationAlpha);
+          }
+          
+          for (let i = 0; i < constellation.stars.length - 1; i++) {
+            line(constellation.stars[i].x, constellation.stars[i].y,
+                 constellation.stars[i + 1].x, constellation.stars[i + 1].y);
+          }
+          
+          // Close the constellation by connecting last star to first
+          if (constellation.stars.length > 2) {
+            line(constellation.stars[constellation.stars.length - 1].x, 
+                 constellation.stars[constellation.stars.length - 1].y,
+                 constellation.stars[0].x, constellation.stars[0].y);
+          }
         }
         
         // Draw constellation stars with glow when hovered
         noStroke();
         for (let i = 0; i < constellation.stars.length; i++) {
           let star = constellation.stars[i];
+          
+          // Calculate star-specific alpha for fading non-selected stars
+          let starAlpha = constellationAlpha;
+          
+          // During phase 3+, fade out non-selected stars instead of hiding them abruptly
+          if (isTransitioning && isSelectedConstellation && transitionPhase >= 3) {
+            if (selectedConstellationStar && star !== selectedConstellationStar) {
+              // Fade out non-selected stars based on selectedConstellationFade
+              starAlpha = constellationAlpha * (1 - selectedConstellationFade);
+              if (starAlpha <= 0) continue; // Skip when fully faded
+            }
+          }
+          
           // Twinkle animation
           let twinkleBrightness = starBrightness + sin(star.twinkle) * 55;
           let twinkleSize = starSize * (0.8 + sin(star.twinkle) * 0.4);
@@ -1630,39 +2973,46 @@
           // Check if this specific star is being hovered in the panel
           let isStarHighlighted = (constellation === selectedConstellation && i === hoveredStarIndex);
           
-          if (constellation.hovered || isStarHighlighted) {
+          // Check if this is the selected star for transition (clicked star)
+          let isSelectedStar = (isTransitioning && selectedConstellationStar && star === selectedConstellationStar);
+          
+          if (constellation.hovered || isStarHighlighted || isSelectedStar) {
             // Glow layers
-            fill(200, 200, 255, 60);
+            let glowStrength = isSelectedStar ? 1.5 : 1;
+            fill(200, 200, 255, 60 * starAlpha * glowStrength);
             ellipse(star.x, star.y, twinkleSize + 8, twinkleSize + 8);
-            fill(200, 200, 255, 100);
+            fill(200, 200, 255, 100 * starAlpha * glowStrength);
             ellipse(star.x, star.y, twinkleSize + 4, twinkleSize + 4);
           }
           
-          // Extra highlight for specific star hover
-          if (isStarHighlighted) {
-            fill(255, 255, 150, 100);
+          // Extra highlight for specific star hover or selected star
+          if (isStarHighlighted || isSelectedStar) {
+            fill(255, 255, 150, 100 * starAlpha);
             ellipse(star.x, star.y, twinkleSize + 12, twinkleSize + 12);
-            fill(255, 255, 200);
+            fill(255, 255, 200, starAlpha * 255);
             ellipse(star.x, star.y, twinkleSize + 2, twinkleSize + 2);
           } else {
-            fill(twinkleBrightness, twinkleBrightness, 255);
+            fill(twinkleBrightness, twinkleBrightness, 255, starAlpha * 255);
             ellipse(star.x, star.y, twinkleSize, twinkleSize);
           }
         }
         
         // Draw constellation name - brighter when hovered
-        let nameAlpha = constellation.hovered ? 220 : 120;
-        let nameBrightness = constellation.hovered ? 200 : 150;
-        fill(nameBrightness, nameBrightness, 255, nameAlpha);
-        textAlign(CENTER, CENTER);
-        textSize(14);
-        textFont('PT Sans');
-        text(constellation.name, constellation.labelX, constellation.labelY);
-        
-        // Add subtle glow to name when hovered
-        if (constellation.hovered) {
-          fill(255, 255, 255, 80);
+        // Hide name in phase 2+
+        if (!isTransitioning || transitionPhase < 2) {
+          let nameAlpha = (constellation.hovered ? 220 : 120) * constellationAlpha;
+          let nameBrightness = constellation.hovered ? 200 : 150;
+          fill(nameBrightness, nameBrightness, 255, nameAlpha);
+          textAlign(CENTER, CENTER);
+          textSize(14);
+          textFont('PT Sans');
           text(constellation.name, constellation.labelX, constellation.labelY);
+          
+          // Add subtle glow to name when hovered
+          if (constellation.hovered) {
+            fill(255, 255, 255, 80 * constellationAlpha);
+            text(constellation.name, constellation.labelX, constellation.labelY);
+          }
         }
       }
     }
@@ -1705,7 +3055,7 @@
     }
 
     class Planet {
-      constructor(distance, size, speed, col, name, ellipseRatioX, ellipseRatioY) {
+      constructor(distance, size, speed, col, name, ellipseRatioX, ellipseRatioY, rotationSpeed) {
         this.distance = distance;
         this.size = size;
         this.speed = speed;
@@ -1717,6 +3067,7 @@
         this.orbitRotation = random(TWO_PI);
         this.wobbleSpeed = random(0.01, 0.03);
         this.wobbleAmount = random(5, 15);
+        this.rotationSpeed = rotationSpeed || random(0.5, 48); // Hours for one rotation
         this.moons = [];
         this.hasRings = false;
         this.rings = [];
