@@ -28,6 +28,9 @@
     let nebulas = [];
     let galaxies = [];
     let pulsars = [];
+    let blackHoles = [];
+    let supernovae = [];
+    let gammaRayBursts = [];
     let constellations = [];
     let flameParticles = [];
     let solarFlares = [];
@@ -45,9 +48,20 @@
     let selectedPulsar = null;
     let pulsarPanelAnimProgress = 0;
     let pulsarPanelAnimState = 'closed';
+    let selectedBlackHole = null;
+    let blackHolePanelAnimProgress = 0;
+    let blackHolePanelAnimState = 'closed';
     let asteroidBelt = null;
     let shootingStars = [];
     let lastShootingStar = 0;
+    let meteorShowerActive = false;
+    let meteorShowerIntensity = 0;
+    let lastMeteorShower = 0;
+    let meteorShowerDuration = 0;
+    let meteorShowerStartTime = 0;
+    let meteorShowerRadiantX = 0;
+    let meteorShowerRadiantY = 0;
+    let firstMeteorShower = true;
     let selectedPlanet = null;
     let panelAnimProgress = 0;
     let panelAnimState = 'closed'; // 'opening', 'open', 'closing', 'closed'
@@ -229,6 +243,9 @@
       nebulas = [];
       galaxies = [];
       pulsars = [];
+      blackHoles = [];
+      supernovae = [];
+      gammaRayBursts = [];
       constellations = [];
       planets = [];
       asteroidBelt = null;
@@ -380,6 +397,101 @@
           mass: random(1.2, 2.0), // Solar masses
           radius: random(10, 20), // Kilometers
           temperature: random(500000, 3000000) // Kelvin (X-ray emitting surface)
+        });
+      }
+      
+      // Create ultra-rare black holes (0-1 per system, 7% chance)
+      if (random() < 0.09) {
+        let mass = random(3, 20); // Solar masses (stellar black hole range)
+        let schwarzschildRadius = mass * 2.95; // km (simplified formula)
+        blackHoles.push({
+          x: random(-width/2, width/2),
+          y: random(-height/2, height/2),
+          mass: mass,
+          radius: schwarzschildRadius,
+          displayRadius: map(mass, 3, 20, 20, 45), // Visual size
+          spinRate: random(0.01, 0.05),
+          accretionDiskAngle: random(TWO_PI),
+          diskParticles: [],
+          jetAngle: random(TWO_PI),
+          // Physical properties
+          name: generateStarName() + ' BH',
+          age: random(100, 10000), // Million years
+          distance: random(1000, 100000), // Light years
+          temperature: 0.00006 / mass * 1e6, // Hawking radiation (Kelvin, very cold)
+          spinParameter: random(0, 0.998) // 0 = non-rotating, 1 = maximum spin
+        });
+        
+        // Generate accretion disk particles
+        let lastBlackHole = blackHoles[blackHoles.length - 1];
+        for (let i = 0; i < 150; i++) {
+          let angle = random(TWO_PI);
+          let distance = random(lastBlackHole.displayRadius * 1.5, lastBlackHole.displayRadius * 4);
+          lastBlackHole.diskParticles.push({
+            angle: angle,
+            distance: distance,
+            size: random(1, 3),
+            speed: 0.02 * (lastBlackHole.displayRadius * 2 / distance), // Faster closer to center
+            color: distance < lastBlackHole.displayRadius * 2.5 ? 
+              { r: random(200, 255), g: random(200, 255), b: 255, a: random(150, 255) } : // Hot inner (blue-white)
+              { r: 255, g: random(100, 200), b: random(50, 100), a: random(100, 200) } // Cooler outer (orange-red)
+          });
+        }
+      }
+      
+      // Create ultra-rare supernovae (5% chance)
+      if (random() < 0.07) {
+        let numSupernovae = 1; // Single supernova when it occurs
+        for (let i = 0; i < numSupernovae; i++) {
+          let supernovaType = random() > 0.5 ? 'Type II' : 'Type Ia';
+          let delayFrames = random(180, 900); // Delay 3-15 seconds before explosion
+          supernovae.push({
+            x: random(-width/2, width/2),
+            y: random(-height/2, height/2),
+            age: -delayFrames, // Negative age = waiting to explode
+            maxAge: random(300, 600), // Lifetime in frames (5-10 seconds at 60fps)
+            expansionSpeed: random(2, 4),
+            brightness: 1,
+            radius: 0,
+            shockwaveRadius: 0,
+            particles: [],
+            type: supernovaType,
+            progenitorSize: random(4, 8), // Size before explosion
+            progenitorColor: supernovaType === 'Type II' ? 
+              { r: random(200, 255), g: random(100, 150), b: random(50, 100) } : // Red supergiant
+              { r: random(220, 255), g: random(220, 255), b: 255 }, // White dwarf
+            // Physical properties
+            name: generateStarName() + ' SN',
+            peakLuminosity: random(1e9, 1e10), // Times solar luminosity
+            distance: random(1000, 100000), // Light years
+            progenitorMass: supernovaType === 'Type II' ? random(8, 25) : random(1.4, 1.4), // Solar masses
+            ejectaVelocity: random(10000, 30000), // km/s
+            energyReleased: random(1, 100) // 10^51 ergs (foe)
+          });
+        }
+      }
+      
+      // Create ultra-rare gamma ray bursts (2% chance)
+      if (random() < 0.02) {
+        let burstType = random() > 0.7 ? 'Long' : 'Short'; // Long (>2s) or Short (<2s)
+        let delayFrames = random(120, 600); // Delay 2-10 seconds before burst
+        gammaRayBursts.push({
+          x: random(-width, width), // Start from edge of screen
+          y: random(-height, height),
+          angle: random(TWO_PI), // Direction of beam sweep
+          age: -delayFrames, // Negative = waiting to burst
+          duration: burstType === 'Long' ? random(120, 300) : random(30, 120), // Frames
+          beamWidth: random(40, 80), // Angular width of beam
+          intensity: 0,
+          sweepSpeed: random(0.02, 0.05), // How fast beam rotates
+          currentAngle: random(TWO_PI),
+          type: burstType,
+          // Physical properties
+          name: 'GRB ' + nf(int(random(100000, 999999)), 6),
+          distance: random(1000000, 10000000000), // Extremely distant (millions to billions of light years)
+          energyReleased: random(1e51, 1e54), // Joules - incredibly energetic
+          redshift: random(0.1, 8.2), // Cosmological redshift
+          progenitor: burstType === 'Long' ? 'Collapsing massive star' : 'Neutron star merger'
         });
       }
       
@@ -637,6 +749,19 @@
     }
     
     function mousePressed() {
+      // Check if black hole panel close button was clicked
+      if (selectedBlackHole !== null && (blackHolePanelAnimState === 'open' || blackHolePanelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let closeX = panelX + 260 - 40;
+        let closeY = 20;
+        let closeSize = 30;
+        if (mouseX > closeX && mouseX < closeX + closeSize && 
+            mouseY > closeY && mouseY < closeY + closeSize) {
+          blackHolePanelAnimState = 'closing';
+          return;
+        }
+      }
+      
       // Check if pulsar panel close button was clicked
       if (selectedPulsar !== null && (pulsarPanelAnimState === 'open' || pulsarPanelAnimState === 'opening')) {
         let panelX = width - 300;
@@ -710,6 +835,10 @@
           pulsarPanelAnimState = 'closing';
           selectedPulsar = null;
         }
+        if (selectedBlackHole !== null) {
+          blackHolePanelAnimState = 'closing';
+          selectedBlackHole = null;
+        }
         
         if (!selectedStar) {
           selectedStar = true;
@@ -738,6 +867,11 @@
             pulsarPanelAnimState = 'closing';
             selectedPulsar = null;
           }
+          // Close black hole panel if open
+          if (selectedBlackHole !== null) {
+            blackHolePanelAnimState = 'closing';
+            selectedBlackHole = null;
+          }
           
           if (selectedPlanet !== planet) {
             if (panelAnimState === 'open') {
@@ -751,6 +885,43 @@
               selectedPlanet = planet;
               panelAnimState = 'opening';
               panelAnimProgress = 0;
+            }
+          }
+          return;
+        }
+      }
+      
+      // Check if any black hole was clicked
+      for (let bh of blackHoles) {
+        let d = dist(relMouseX, relMouseY, bh.x, bh.y);
+        if (d < bh.displayRadius) {
+          // Close other panels
+          if (selectedPlanet !== null) {
+            panelAnimState = 'closing';
+            selectedPlanet = null;
+          }
+          if (selectedConstellation !== null) {
+            constellationPanelAnimState = 'closing';
+            selectedConstellation = null;
+          }
+          if (selectedStar) {
+            starPanelAnimState = 'closing';
+            selectedStar = false;
+          }
+          if (selectedPulsar !== null) {
+            pulsarPanelAnimState = 'closing';
+            selectedPulsar = null;
+          }
+          
+          if (selectedBlackHole !== bh) {
+            if (blackHolePanelAnimState === 'open') {
+              selectedBlackHole = bh;
+            } else if (blackHolePanelAnimState === 'opening') {
+              selectedBlackHole = bh;
+            } else {
+              selectedBlackHole = bh;
+              blackHolePanelAnimState = 'opening';
+              blackHolePanelAnimProgress = 0;
             }
           }
           return;
@@ -773,6 +944,10 @@
           if (selectedStar) {
             starPanelAnimState = 'closing';
             selectedStar = false;
+          }
+          if (selectedBlackHole !== null) {
+            blackHolePanelAnimState = 'closing';
+            selectedBlackHole = null;
           }
           
           if (selectedPulsar !== pulsar) {
@@ -808,6 +983,11 @@
           if (selectedPulsar !== null) {
             pulsarPanelAnimState = 'closing';
             selectedPulsar = null;
+          }
+          // Close black hole panel if open
+          if (selectedBlackHole !== null) {
+            blackHolePanelAnimState = 'closing';
+            selectedBlackHole = null;
           }
           
           if (selectedConstellation !== constellation) {
@@ -851,6 +1031,19 @@
         if (mouseX < panelX || mouseX > panelX + panelWidth ||
             mouseY < panelY || mouseY > panelY + panelHeight) {
           pulsarPanelAnimState = 'closing';
+        }
+      }
+      
+      // Click outside deselects black hole
+      if (selectedBlackHole !== null && (blackHolePanelAnimState === 'open' || blackHolePanelAnimState === 'opening')) {
+        let panelX = width - 300;
+        let panelY = 20;
+        let panelWidth = 260;
+        let panelHeight = 680;
+        
+        if (mouseX < panelX || mouseX > panelX + panelWidth ||
+            mouseY < panelY || mouseY > panelY + panelHeight) {
+          blackHolePanelAnimState = 'closing';
         }
       }
       
@@ -917,6 +1110,24 @@
       push();
       drawingContext.globalAlpha = 1 - systemFade;
       drawPulsars();
+      pop();
+      
+      // Draw black holes
+      push();
+      drawingContext.globalAlpha = 1 - systemFade;
+      drawBlackHoles();
+      pop();
+      
+      // Draw supernovae
+      push();
+      drawingContext.globalAlpha = 1 - systemFade;
+      drawSupernovae();
+      pop();
+      
+      // Draw gamma ray bursts
+      push();
+      drawingContext.globalAlpha = 1 - systemFade;
+      drawGammaRayBursts();
       pop();
       
       // Draw nebulas
@@ -1070,6 +1281,33 @@
       }
       pop();
       
+      // Draw meteor shower notification
+      if (meteorShowerActive) {
+        push();
+        let showerProgress = (millis() - meteorShowerStartTime) / meteorShowerDuration;
+        let fadeInOut = showerProgress < 0.1 ? showerProgress / 0.1 : 
+                        showerProgress > 0.9 ? (1 - showerProgress) / 0.1 : 1;
+        
+        fill(255, 200, 100, 150 * fadeInOut);
+        textAlign(CENTER, TOP);
+        textSize(16);
+        textFont('PT Sans');
+        text("⭐ Meteor Shower ⭐", width/2, 20);
+        
+        // Progress bar
+        let barWidth = 200;
+        let barHeight = 4;
+        let barX = width/2 - barWidth/2;
+        let barY = 45;
+        
+        fill(255, 255, 255, 50 * fadeInOut);
+        rect(barX, barY, barWidth, barHeight, 2);
+        fill(255, 200, 100, 200 * fadeInOut);
+        rect(barX, barY, barWidth * (1 - showerProgress), barHeight, 2);
+        
+        pop();
+      }
+      
       // Update and draw planet info panel animation
       updatePanelAnimation();
       if (panelAnimState !== 'closed') {
@@ -1092,6 +1330,12 @@
       updatePulsarPanelAnimation();
       if (pulsarPanelAnimState !== 'closed') {
         drawPulsarInfoPanel();
+      }
+      
+      // Update and draw black hole info panel
+      updateBlackHolePanelAnimation();
+      if (blackHolePanelAnimState !== 'closed') {
+        drawBlackHoleInfoPanel();
       }
     }
     
@@ -1148,6 +1392,23 @@
           pulsarPanelAnimProgress = 0;
           pulsarPanelAnimState = 'closed';
           selectedPulsar = null;
+        }
+      }
+    }
+    
+    function updateBlackHolePanelAnimation() {
+      if (blackHolePanelAnimState === 'opening') {
+        blackHolePanelAnimProgress += 0.08;
+        if (blackHolePanelAnimProgress >= 1) {
+          blackHolePanelAnimProgress = 1;
+          blackHolePanelAnimState = 'open';
+        }
+      } else if (blackHolePanelAnimState === 'closing') {
+        blackHolePanelAnimProgress -= 0.08;
+        if (blackHolePanelAnimProgress <= 0) {
+          blackHolePanelAnimProgress = 0;
+          blackHolePanelAnimState = 'closed';
+          selectedBlackHole = null;
         }
       }
     }
@@ -1660,6 +1921,222 @@
       fill(200, 200, 200);
       textSize(10);
       let description = "Neutron star remnant of a supernova explosion, spinning rapidly and emitting beams of electromagnetic radiation.";
+      text(description, panelX + 20, detailY + 15, panelWidth - 40, 60);
+      
+      // Instruction text at bottom
+      detailY = panelY + panelHeight - 35;
+      fill(150, 150, 150);
+      textAlign(CENTER, TOP);
+      textSize(10);
+      text("Click outside panel to close", panelX + panelWidth/2, detailY);
+      
+      textAlign(LEFT, TOP);
+      
+      // Close button
+      let closeX = panelX + panelWidth - 40;
+      let closeY = panelY + 10;
+      let closeSize = 30;
+      fill(150, 50, 50, 200 * easeProgress);
+      noStroke();
+      ellipse(closeX + closeSize/2, closeY + closeSize/2, closeSize, closeSize);
+      stroke(255, 255 * easeProgress);
+      strokeWeight(2);
+      line(closeX + 10, closeY + 10, closeX + 20, closeY + 20);
+      line(closeX + 20, closeY + 10, closeX + 10, closeY + 20);
+      
+      drawingContext.restore();
+      pop();
+    }
+    
+    function drawBlackHoleInfoPanel() {
+      if (!selectedBlackHole) return;
+      
+      push();
+      
+      let panelX = width - 300;
+      let panelY = 20;
+      let panelWidth = 260;
+      let panelHeight = 680;
+      
+      let easeProgress = blackHolePanelAnimProgress * blackHolePanelAnimProgress * (3 - 2 * blackHolePanelAnimProgress);
+      
+      let pixelSize = 8;
+      let revealHeight = panelHeight * easeProgress;
+      
+      // Clip the panel background to animated height
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(panelX, panelY, panelWidth, revealHeight);
+      drawingContext.clip();
+      
+      // Panel shadow
+      fill(0, 0, 0, 100 * easeProgress);
+      rect(panelX + 5, panelY + 5, panelWidth, panelHeight, 10);
+      
+      // Panel background
+      fill(20, 25, 40, 240 * easeProgress);
+      rect(panelX, panelY, panelWidth, panelHeight, 10);
+      
+      // Panel border - dark purple/black for black hole
+      noFill();
+      stroke(80, 0, 120, 180 * easeProgress);
+      strokeWeight(2);
+      rect(panelX, panelY, panelWidth, panelHeight, 10);
+      
+      drawingContext.restore();
+      
+      // Digital pixel reveal effect
+      if (blackHolePanelAnimProgress < 1) {
+        noStroke();
+        for (let y = revealHeight; y < revealHeight + pixelSize * 3; y += pixelSize) {
+          for (let x = 0; x < panelWidth; x += pixelSize) {
+            if (random() > 0.3) {
+              fill(80, 0, 120, random(50, 150));
+              rect(panelX + x, panelY + y, pixelSize - 1, pixelSize - 1);
+            }
+          }
+        }
+      }
+      
+      // Black hole preview
+      let previewX = panelX + panelWidth / 2;
+      let previewY = panelY + 130;
+      
+      push();
+      translate(previewX, previewY);
+      
+      // Rotating accretion disk particles
+      let bhAngle = frameCount * selectedBlackHole.spinRate;
+      for (let i = 0; i < 30; i++) {
+        let angle = (i / 30) * TWO_PI + bhAngle;
+        let distance = 25 + (i % 3) * 5;
+        let px = cos(angle) * distance;
+        let py = sin(angle) * distance * 0.3;
+        
+        let innerDist = distance < 30;
+        if (innerDist) {
+          fill(200, 220, 255, 180);
+        } else {
+          fill(255, 150, 80, 140);
+        }
+        ellipse(px, py, 2, 2);
+      }
+      
+      // Gravitational lensing ring
+      noFill();
+      stroke(100, 150, 200, 60);
+      strokeWeight(1);
+      ellipse(0, 0, 50, 50);
+      
+      // Event horizon
+      noStroke();
+      fill(0, 0, 0, 255);
+      ellipse(0, 0, 30, 30);
+      fill(0, 0, 0, 255);
+      ellipse(0, 0, 20, 20);
+      
+      pop();
+      
+      // Clip for text content
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(panelX, panelY, panelWidth, revealHeight);
+      drawingContext.clip();
+      
+      // Black hole name title
+      noStroke();
+      textAlign(LEFT, TOP);
+      textSize(22);
+      textFont('PT Sans');
+      // Drop shadow
+      fill(0, 0, 0, 150);
+      text(selectedBlackHole.name, panelX + 22, panelY + 17);
+      // Main text
+      fill(255);
+      text(selectedBlackHole.name, panelX + 20, panelY + 15);
+      
+      // Divider line
+      stroke(80, 0, 120, 120);
+      strokeWeight(1);
+      line(panelX + 20, panelY + 50, panelX + panelWidth - 20, panelY + 50);
+      
+      // Details
+      let detailY = panelY + 220;
+      let lineHeight = 20;
+      textAlign(LEFT, TOP);
+      textSize(11);
+      
+      // Type
+      fill(150, 180, 255);
+      text("Type:", panelX + 20, detailY);
+      fill(255);
+      text("Stellar Black Hole", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Mass
+      fill(150, 180, 255);
+      text("Mass:", panelX + 20, detailY);
+      fill(255);
+      text(selectedBlackHole.mass.toFixed(1) + " solar masses", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Schwarzschild Radius
+      fill(150, 180, 255);
+      text("Event Horizon Radius:", panelX + 20, detailY);
+      fill(255);
+      text(selectedBlackHole.radius.toFixed(1) + " km", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Spin Parameter
+      fill(150, 180, 255);
+      text("Spin Parameter:", panelX + 20, detailY);
+      fill(255);
+      let spinPercent = (selectedBlackHole.spinParameter * 100).toFixed(1);
+      text(spinPercent + "% of maximum", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Age
+      fill(150, 180, 255);
+      text("Age:", panelX + 20, detailY);
+      fill(255);
+      if (selectedBlackHole.age >= 1000) {
+        text((selectedBlackHole.age / 1000).toFixed(1) + " billion years", panelX + 20, detailY + 15);
+      } else {
+        text(selectedBlackHole.age.toFixed(0) + " million years", panelX + 20, detailY + 15);
+      }
+      
+      detailY += lineHeight * 2;
+      
+      // Distance
+      fill(150, 180, 255);
+      text("Distance:", panelX + 20, detailY);
+      fill(255);
+      text(Math.round(selectedBlackHole.distance).toLocaleString() + " light years", panelX + 20, detailY + 15);
+      
+      detailY += lineHeight * 2;
+      
+      // Hawking Temperature
+      fill(150, 180, 255);
+      text("Hawking Temperature:", panelX + 20, detailY);
+      fill(255);
+      if (selectedBlackHole.temperature < 1) {
+        text((selectedBlackHole.temperature * 1000).toFixed(2) + " millikelvin", panelX + 20, detailY + 15);
+      } else {
+        text(selectedBlackHole.temperature.toFixed(4) + " K", panelX + 20, detailY + 15);
+      }
+      
+      detailY += lineHeight * 2;
+      
+      // Description
+      fill(150, 180, 255);
+      text("Classification:", panelX + 20, detailY);
+      fill(200, 200, 200);
+      textSize(10);
+      let description = "A region of spacetime where gravity is so strong that nothing, not even light, can escape. Formed from the collapse of a massive star.";
       text(description, panelX + 20, detailY + 15, panelWidth - 40, 60);
       
       // Instruction text at bottom
@@ -2605,9 +3082,51 @@
     }
     
     function updateShootingStars() {
-      // Randomly create shooting stars (every 3-8 seconds on average)
-      if (millis() - lastShootingStar > random(3000, 8000)) {
-        createShootingStar();
+      // Meteor shower logic - first one 20-40 seconds, then every 90-180 seconds
+      let showerInterval = firstMeteorShower ? random(20000, 40000) : random(90000, 180000);
+      
+      if (!meteorShowerActive && millis() - lastMeteorShower > showerInterval) {
+        meteorShowerActive = true;
+        meteorShowerStartTime = millis();
+        meteorShowerDuration = random(5000, 10000); // 5-10 second bursts
+        meteorShowerIntensity = random(0.7, 1.0); // Intensity varies
+        lastMeteorShower = millis();
+        firstMeteorShower = false;
+        
+        // Set random radiant point at edge of screen
+        let radiantSide = int(random(4));
+        if (radiantSide === 0) { // Top
+          meteorShowerRadiantX = random(-width/2, width/2);
+          meteorShowerRadiantY = -height/2;
+        } else if (radiantSide === 1) { // Right
+          meteorShowerRadiantX = width/2;
+          meteorShowerRadiantY = random(-height/2, height/2);
+        } else if (radiantSide === 2) { // Bottom
+          meteorShowerRadiantX = random(-width/2, width/2);
+          meteorShowerRadiantY = height/2;
+        } else { // Left
+          meteorShowerRadiantX = -width/2;
+          meteorShowerRadiantY = random(-height/2, height/2);
+        }
+      }
+      
+      // Check if meteor shower is over
+      if (meteorShowerActive && millis() - meteorShowerStartTime > meteorShowerDuration) {
+        meteorShowerActive = false;
+        meteorShowerIntensity = 0;
+      }
+      
+      // Create shooting stars (more frequent during meteor shower)
+      let spawnInterval = meteorShowerActive ? 
+        random(100, 300) : // During shower: every 0.1-0.3 seconds
+        random(3000, 8000); // Normal: every 3-8 seconds
+      
+      if (millis() - lastShootingStar > spawnInterval) {
+        // During meteor shower, create multiple stars
+        let numStars = meteorShowerActive ? int(random(2, 5)) : 1;
+        for (let i = 0; i < numStars; i++) {
+          createShootingStar(meteorShowerActive);
+        }
         lastShootingStar = millis();
       }
       
@@ -2637,33 +3156,47 @@
       }
     }
     
-    function createShootingStar() {
+    function createShootingStar(isMeteorShower = false) {
       // Random starting position at edge of screen
       let startSide = int(random(4));
       let x, y, vx, vy;
       
-      if (startSide === 0) { // Top
-        x = random(-width/2, width/2);
-        y = -height/2;
-        vx = random(-3, 3);
-        vy = random(4, 8);
-      } else if (startSide === 1) { // Right
-        x = width/2;
-        y = random(-height/2, height/2);
-        vx = random(-8, -4);
-        vy = random(-3, 3);
-      } else if (startSide === 2) { // Bottom
-        x = random(-width/2, width/2);
-        y = height/2;
-        vx = random(-3, 3);
-        vy = random(-8, -4);
-      } else { // Left
-        x = -width/2;
-        y = random(-height/2, height/2);
-        vx = random(4, 8);
-        vy = random(-3, 3);
+      // During meteor shower, meteors come from the radiant point
+      if (isMeteorShower) {
+        // Start near the radiant point with some variation
+        x = meteorShowerRadiantX + random(-100, 100);
+        y = meteorShowerRadiantY + random(-100, 100);
+        
+        // Calculate velocity away from radiant toward center/opposite edge
+        let targetX = -meteorShowerRadiantX + random(-200, 200);
+        let targetY = -meteorShowerRadiantY + random(-200, 200);
+        let angle = atan2(targetY - y, targetX - x);
+        let speed = random(6, 12);
+        vx = cos(angle) * speed;
+        vy = sin(angle) * speed;
+      } else {
+        if (startSide === 0) { // Top
+          x = random(-width/2, width/2);
+          y = -height/2;
+          vx = random(-3, 3);
+          vy = random(4, 8);
+        } else if (startSide === 1) { // Right
+          x = width/2;
+          y = random(-height/2, height/2);
+          vx = random(-8, -4);
+          vy = random(-3, 3);
+        } else if (startSide === 2) { // Bottom
+          x = random(-width/2, width/2);
+          y = height/2;
+          vx = random(-3, 3);
+          vy = random(-8, -4);
+        } else { // Left
+          x = -width/2;
+          y = random(-height/2, height/2);
+          vx = random(4, 8);
+          vy = random(-3, 3);
+        }
       }
-      
       shootingStars.push({
         x: x,
         y: y,
@@ -2887,6 +3420,306 @@
         // Ultra bright center
         fill(255, 255, 255, coreAlpha);
         ellipse(0, 0, pulsar.size * 0.5, pulsar.size * 0.5);
+        
+        pop();
+      }
+    }
+    
+    function drawBlackHoles() {
+      for (let bh of blackHoles) {
+        push();
+        translate(bh.x, bh.y);
+        
+        // Update accretion disk rotation
+        bh.accretionDiskAngle += bh.spinRate;
+        
+        noStroke();
+        
+        // Draw polar jets (thin beams shooting from top and bottom)
+        for (let i = 0; i < 2; i++) {
+          let jetAngle = bh.jetAngle + i * PI;
+          let jetLength = bh.displayRadius * 5;
+          
+          push();
+          rotate(jetAngle);
+          
+          // Jet gradient
+          for (let j = 0; j < 12; j++) {
+            let progress = j / 12;
+            let jetAlpha = (1 - progress) * 100;
+            fill(150, 200, 255, jetAlpha);
+            let jetWidth = (12 - j) * 0.5;
+            ellipse(jetLength * progress, 0, jetWidth, jetWidth * 0.3);
+          }
+          pop();
+        }
+        
+        // Draw accretion disk particles
+        push();
+        rotate(bh.accretionDiskAngle);
+        for (let particle of bh.diskParticles) {
+          particle.angle += particle.speed;
+          
+          let px = cos(particle.angle) * particle.distance;
+          let py = sin(particle.angle) * particle.distance * 0.3; // Flatten to create disk appearance
+          
+          fill(particle.color.r, particle.color.g, particle.color.b, particle.color.a);
+          ellipse(px, py, particle.size, particle.size);
+          
+          // Add glow to brightest particles
+          if (particle.color.a > 200) {
+            fill(particle.color.r, particle.color.g, particle.color.b, particle.color.a * 0.3);
+            ellipse(px, py, particle.size * 2, particle.size * 2);
+          }
+        }
+        pop();
+        
+        // Gravitational lensing effect (ring around event horizon)
+        stroke(100, 150, 200, 100);
+        strokeWeight(2);
+        noFill();
+        ellipse(0, 0, bh.displayRadius * 2.8, bh.displayRadius * 2.8);
+        
+        stroke(80, 120, 180, 60);
+        strokeWeight(1);
+        ellipse(0, 0, bh.displayRadius * 3.2, bh.displayRadius * 3.2);
+        
+        noStroke();
+        
+        // Event horizon outer glow
+        fill(0, 0, 0, 200);
+        ellipse(0, 0, bh.displayRadius * 1.8, bh.displayRadius * 1.8);
+        
+        // Event horizon - pure black circle
+        fill(0, 0, 0, 255);
+        ellipse(0, 0, bh.displayRadius, bh.displayRadius);
+        
+        // Ultra dark center (double black)
+        fill(0, 0, 0, 255);
+        ellipse(0, 0, bh.displayRadius * 0.7, bh.displayRadius * 0.7);
+        
+        pop();
+      }
+    }
+    
+    function drawSupernovae() {
+      for (let i = supernovae.length - 1; i >= 0; i--) {
+        let sn = supernovae[i];
+        
+        // Update supernova
+        sn.age++;
+        
+        // If still waiting to explode, show progenitor star
+        if (sn.age < 0) {
+          push();
+          translate(sn.x, sn.y);
+          noStroke();
+          
+          // Progenitor star with gentle pulse
+          let pulse = (sin(frameCount * 0.05) + 1) / 2;
+          let starSize = sn.progenitorSize * (1 + pulse * 0.2);
+          
+          // Glow
+          fill(sn.progenitorColor.r, sn.progenitorColor.g, sn.progenitorColor.b, 60);
+          ellipse(0, 0, starSize * 2, starSize * 2);
+          
+          // Star body
+          fill(sn.progenitorColor.r, sn.progenitorColor.g, sn.progenitorColor.b, 200);
+          ellipse(0, 0, starSize, starSize);
+          
+          // Bright center
+          fill(255, 255, 255, 150);
+          ellipse(0, 0, starSize * 0.4, starSize * 0.4);
+          
+          pop();
+          continue;
+        }
+        
+        // Initialize particles on first frame of explosion
+        if (sn.age === 0 && sn.particles.length === 0) {
+          for (let j = 0; j < 200; j++) {
+            let angle = random(TWO_PI);
+            let speed = random(0.5, 3);
+            sn.particles.push({
+              angle: angle,
+              speed: speed,
+              distance: 0,
+              size: random(1, 4),
+              brightness: random(0.5, 1),
+              color: random() > 0.5 ? 
+                { r: 255, g: random(150, 255), b: random(100, 200) } : // Yellow-orange
+                { r: random(200, 255), g: random(200, 255), b: 255 } // Blue-white
+            });
+          }
+        }
+        
+        let ageProgress = sn.age / sn.maxAge;
+        
+        // Remove if expired
+        if (sn.age > sn.maxAge) {
+          supernovae.splice(i, 1);
+          continue;
+        }
+        
+        // Brightness curve: rapid rise, slow fade
+        if (ageProgress < 0.1) {
+          sn.brightness = ageProgress / 0.1; // Rise to peak
+        } else {
+          sn.brightness = 1 - ((ageProgress - 0.1) / 0.9); // Slow fade
+        }
+        
+        // Expand shockwave
+        sn.shockwaveRadius += sn.expansionSpeed;
+        
+        // Update ejected particles
+        for (let particle of sn.particles) {
+          particle.distance += particle.speed * sn.expansionSpeed;
+        }
+        
+        push();
+        translate(sn.x, sn.y);
+        
+        noStroke();
+        
+        // Draw ejected material particles
+        for (let particle of sn.particles) {
+          let px = cos(particle.angle) * particle.distance;
+          let py = sin(particle.angle) * particle.distance;
+          
+          let alpha = sn.brightness * particle.brightness * 255;
+          fill(particle.color.r, particle.color.g, particle.color.b, alpha);
+          ellipse(px, py, particle.size, particle.size);
+          
+          // Particle glow
+          fill(particle.color.r, particle.color.g, particle.color.b, alpha * 0.3);
+          ellipse(px, py, particle.size * 2, particle.size * 2);
+        }
+        
+        // Draw expanding shockwave rings
+        noFill();
+        for (let j = 0; j < 3; j++) {
+          let ringRadius = sn.shockwaveRadius - j * 20;
+          if (ringRadius > 0) {
+            let ringAlpha = sn.brightness * (1 - j / 3) * 150;
+            stroke(255, 200, 150, ringAlpha);
+            strokeWeight(2 - j * 0.5);
+            ellipse(0, 0, ringRadius * 2, ringRadius * 2);
+          }
+        }
+        
+        noStroke();
+        
+        // Bright core with multiple glow layers
+        let coreSize = 15 * sn.brightness;
+        
+        // Outer glow (large, faint)
+        fill(255, 180, 100, 40 * sn.brightness);
+        ellipse(0, 0, coreSize * 8, coreSize * 8);
+        
+        // Middle glow
+        fill(255, 220, 150, 80 * sn.brightness);
+        ellipse(0, 0, coreSize * 4, coreSize * 4);
+        
+        // Inner glow
+        fill(255, 240, 200, 150 * sn.brightness);
+        ellipse(0, 0, coreSize * 2, coreSize * 2);
+        
+        // Bright white core
+        fill(255, 255, 255, 255 * sn.brightness);
+        ellipse(0, 0, coreSize, coreSize);
+        
+        // Ultra-bright center point
+        fill(255, 255, 255, 255 * sn.brightness);
+        ellipse(0, 0, coreSize * 0.4, coreSize * 0.4);
+        
+        pop();
+      }
+    }
+    
+    function drawGammaRayBursts() {
+      for (let i = gammaRayBursts.length - 1; i >= 0; i--) {
+        let grb = gammaRayBursts[i];
+        
+        // Update burst
+        grb.age++;
+        
+        // If still waiting to burst, don't draw
+        if (grb.age < 0) {
+          continue;
+        }
+        
+        // Remove if expired
+        if (grb.age > grb.duration) {
+          gammaRayBursts.splice(i, 1);
+          continue;
+        }
+        
+        let ageProgress = grb.age / grb.duration;
+        
+        // Intensity curve: rapid rise, plateau, rapid fall
+        if (ageProgress < 0.05) {
+          grb.intensity = ageProgress / 0.05; // Fast rise
+        } else if (ageProgress < 0.7) {
+          grb.intensity = 1; // Sustained emission
+        } else {
+          grb.intensity = 1 - ((ageProgress - 0.7) / 0.3); // Fast fade
+        }
+        
+        // Beam sweeps slowly
+        grb.currentAngle += grb.sweepSpeed;
+        
+        push();
+        
+        // Draw from edge of screen
+        let startX = grb.x;
+        let startY = grb.y;
+        
+        // Calculate beam direction and endpoints
+        let beamLength = max(width, height) * 2;
+        
+        // Draw multiple beam rays for thickness
+        for (let layer = 0; layer < 5; layer++) {
+          let layerProgress = layer / 5;
+          let angleOffset = (layerProgress - 0.5) * grb.beamWidth * 0.01;
+          let currentBeamAngle = grb.currentAngle + angleOffset;
+          
+          let endX = startX + cos(currentBeamAngle) * beamLength;
+          let endY = startY + sin(currentBeamAngle) * beamLength;
+          
+          // Create gradient along beam
+          let gradient = drawingContext.createLinearGradient(startX, startY, endX, endY);
+          
+          let alpha = grb.intensity * (1 - layerProgress * 0.7);
+          
+          // Core beam is blue-white, outer is more cyan
+          if (layer < 2) {
+            gradient.addColorStop(0, `rgba(200, 230, 255, ${alpha * 0.8})`);
+            gradient.addColorStop(0.3, `rgba(180, 220, 255, ${alpha * 0.5})`);
+            gradient.addColorStop(0.7, `rgba(150, 200, 255, ${alpha * 0.2})`);
+            gradient.addColorStop(1, `rgba(100, 180, 255, 0)`);
+          } else {
+            gradient.addColorStop(0, `rgba(150, 200, 255, ${alpha * 0.4})`);
+            gradient.addColorStop(0.5, `rgba(100, 180, 255, ${alpha * 0.2})`);
+            gradient.addColorStop(1, `rgba(80, 160, 255, 0)`);
+          }
+          
+          drawingContext.strokeStyle = gradient;
+          drawingContext.lineWidth = (5 - layer) * 3;
+          drawingContext.beginPath();
+          drawingContext.moveTo(startX, startY);
+          drawingContext.lineTo(endX, endY);
+          drawingContext.stroke();
+        }
+        
+        // Bright source point
+        noStroke();
+        let sourceSize = 8 * grb.intensity;
+        fill(200, 230, 255, 200 * grb.intensity);
+        ellipse(startX, startY, sourceSize * 3, sourceSize * 3);
+        fill(220, 240, 255, 255 * grb.intensity);
+        ellipse(startX, startY, sourceSize * 1.5, sourceSize * 1.5);
+        fill(255, 255, 255, 255 * grb.intensity);
+        ellipse(startX, startY, sourceSize, sourceSize);
         
         pop();
       }
