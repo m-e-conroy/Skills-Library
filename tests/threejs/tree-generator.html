@@ -1,0 +1,1873 @@
+<!--
+Create a procedural 3D tree generator using Three.js that generates realistic-looking trees with customizable parameters. The generator should produce trees with organic-looking branching patterns, varying trunk thickness, and foliage.
+
+Requirements
+Tree Structure
+Trunk: Tapered cylindrical geometry starting thick at base and narrowing toward top
+Branches: Recursive branching system with decreasing thickness at each level
+Leaves/Foliage: Represented using either particle systems, instanced geometries, or simplified mesh clusters
+Roots (optional): Visible root structure at the base
+Customizable Parameters
+Tree height (overall scale)
+Branch count per node (branching factor)
+Maximum recursion depth (number of branch levels)
+Branch angle variation (randomness in growth direction)
+Trunk/branch thickness ratio
+Leaf density and color
+Random seed for reproducible generation
+Three.js Implementation
+Use appropriate geometries (CylinderGeometry for trunk/branches, or custom BufferGeometry)
+Implement efficient rendering (consider instancing for leaves)
+Include proper materials with realistic colors and shading
+Add lighting setup to showcase the 3D structure
+Implement camera controls (OrbitControls) for viewing from different angles
+Interactivity
+GUI controls (using dat.GUI or lil-gui) to adjust parameters in real-time
+Regenerate button to create new tree with same or different parameters
+Display performance metrics (polygon count, FPS)
+Steps
+Set up Three.js scene with camera, renderer, and lighting
+Implement recursive branch generation algorithm starting from trunk
+Create geometry for trunk and branches with proper tapering
+Add branching logic with angle variation and length reduction
+Generate foliage/leaves at branch endpoints
+Implement parameter controls with GUI
+Add regeneration functionality
+Optimize rendering performance
+Output Format
+Provide complete, functional code organized as follows:
+
+HTML file with Three.js setup and canvas element
+JavaScript containing:
+Tree generation class/function with all parameters
+Recursive branching algorithm
+Geometry creation methods
+Scene setup and rendering loop
+GUI integration for parameter control
+Inline CSS for basic styling
+Comments explaining key algorithmic decisions
+Code should be production-ready, well-commented, and follow Three.js best practices.
+
+Examples
+Example parameter sets:
+
+Oak Tree
+
+Height: 10
+Branch count: 3-4 per node
+Max depth: 5
+Branch angle: 25-45 degrees
+Thickness ratio: 0.7
+Pine Tree
+
+Height: 15
+Branch count: 6-8 per node (whorled pattern)
+Max depth: 8
+Branch angle: 15-30 degrees (more upward)
+Thickness ratio: 0.8
+Willow Tree
+
+Height: 8
+Branch count: 2-3 per node
+Max depth: 7
+Branch angle: 45-90 degrees (drooping)
+Thickness ratio: 0.6
+(Actual implementation should allow smooth variation between these styles through parameter adjustment)
+
+Notes
+Consider using L-systems or space colonization algorithms for more sophisticated branching patterns
+Balance visual quality with performance; high recursion depths can generate many polygons
+Use randomness strategically to create organic appearance while maintaining overall tree shape
+Implement level-of-detail (LOD) for better performance if generating multiple trees
+Ensure branches don't intersect unnaturally; may need collision detection for advanced implementations
+Consider adding wind animation for dynamic movement
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Procedural Tree Generator</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+    #stats {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #0f0;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="stats">
+    <div>Polygons: <span id="polyCount">0</span></div>
+    <div>FPS: <span id="fps">0</span></div>
+    <div>Camera: <span id="camPos">0, 0, 0</span></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+  
+  <script async src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.webgpu.js",
+        "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.webgpu.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+    import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+    
+    // Seeded random number generator for reproducible results
+    class SeededRandom {
+      constructor(seed) {
+        this.seed = seed;
+      }
+      random() {
+        const x = Math.sin(this.seed++) * 10000;
+        return x - Math.floor(x);
+      }
+    }
+
+    // Tree Generator Class
+    class TreeGenerator {
+      constructor(params) {
+        this.params = {
+          height: params.height || 8,
+          branchCount: params.branchCount || 3,
+          maxDepth: params.maxDepth || 7,
+          minAngle: params.minAngle || 10,
+          maxAngle: params.maxAngle || 25,
+          thicknessRatio: params.thicknessRatio || 0.55,
+          leafDensity: params.leafDensity || 100,
+          leafColor: params.leafColor || 0x2d5016,
+          seed: params.seed || 12345,
+          showRoots: params.showRoots || false,
+          showLeaves: params.showLeaves !== undefined ? params.showLeaves : true,
+          rootCount: params.rootCount || 7,
+          showFlowers: params.showFlowers || false,
+          flowerDensity: params.flowerDensity || 30,
+          flowerColor: params.flowerColor || 0xffb6c1,
+          flowerSize: params.flowerSize || 0.3,
+          showFruits: params.showFruits || false,
+          fruitDensity: params.fruitDensity || 20,
+          fruitColor: params.fruitColor || 0xff4444,
+          fruitSize: params.fruitSize || 0.4,
+          lodLevel: params.lodLevel !== undefined ? params.lodLevel : 0,
+          useBillboard: params.useBillboard || false,
+          barkType: params.barkType || 'oak',
+          barkRoughness: params.barkRoughness !== undefined ? params.barkRoughness : 0.9,
+          barkColor: params.barkColor || 0x4a3728,
+          barkScale: params.barkScale || 1.0,
+          barkDepth: params.barkDepth || 0.5
+        };
+        this.rng = new SeededRandom(this.params.seed);
+        this.branchGeometries = [];
+        this.leafPositions = [];
+        this.flowerPositions = [];
+        this.fruitPositions = [];
+        this.polyCount = 0;
+        
+        // Reusable PBR materials for better visual quality
+        this.branchMaterial = new THREE.MeshStandardMaterial({ 
+          color: this.params.barkColor,
+          roughness: this.params.barkRoughness,
+          metalness: 0.0,
+          flatShading: false
+        });
+        
+        this.leafMaterial = new THREE.MeshStandardMaterial({ 
+          color: this.params.leafColor,
+          roughness: 0.8,
+          metalness: 0.0,
+          side: THREE.DoubleSide,
+          transparent: false
+        });
+        
+        this.flowerMaterial = new THREE.MeshStandardMaterial({
+          color: this.params.flowerColor,
+          roughness: 0.6,
+          metalness: 0.1,
+          emissive: this.params.flowerColor,
+          emissiveIntensity: 0.2
+        });
+        
+        this.fruitMaterial = new THREE.MeshStandardMaterial({
+          color: this.params.fruitColor,
+          roughness: 0.4,
+          metalness: 0.0
+        });
+        
+        // Add procedural bark texture
+        this.addBarkTexture();
+      }
+      
+      // Generate procedural leaf atlas texture
+      addLeafAtlasTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // Create 4x4 grid of leaf variations (16 different leaves)
+        const leafSize = 128;
+        const baseColor = new THREE.Color(this.params.leafColor);
+        
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < 4; col++) {
+            const x = col * leafSize;
+            const y = row * leafSize;
+            
+            // Random variation for this leaf
+            const variation = 0.8 + Math.random() * 0.4;
+            const r = Math.floor(baseColor.r * 255 * variation);
+            const g = Math.floor(baseColor.g * 255 * variation);
+            const b = Math.floor(baseColor.b * 255 * variation);
+            
+            // Draw leaf shape
+            ctx.save();
+            ctx.translate(x + leafSize/2, y + leafSize/2);
+            
+            // Leaf body with proper alpha
+            ctx.beginPath();
+            ctx.ellipse(0, 0, leafSize * 0.35, leafSize * 0.45, 0, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, leafSize * 0.45);
+            gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 1)`);
+            gradient.addColorStop(0.7, `rgba(${Math.floor(r*0.8)}, ${Math.floor(g*0.8)}, ${Math.floor(b*0.8)}, 0.95)`);
+            gradient.addColorStop(0.85, `rgba(${r}, ${g}, ${b}, 0.6)`);
+            gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Fill background for non-leaf areas with transparent
+            // This ensures the atlas has proper alpha channel data
+            
+            // Leaf veins
+            ctx.strokeStyle = `rgba(${Math.floor(r*0.6)}, ${Math.floor(g*0.6)}, ${Math.floor(b*0.6)}, 0.5)`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, -leafSize * 0.4);
+            ctx.lineTo(0, leafSize * 0.4);
+            ctx.stroke();
+            
+            // Side veins
+            for (let v = -3; v <= 3; v++) {
+              if (v !== 0) {
+                ctx.beginPath();
+                ctx.moveTo(0, v * leafSize * 0.1);
+                ctx.lineTo(leafSize * 0.2 * Math.sign(v), v * leafSize * 0.15);
+                ctx.stroke();
+              }
+            }
+            
+            ctx.restore();
+          }
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        return texture;
+      }
+      
+      // Generate procedural bark texture using canvas with variation
+      addBarkTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // Generate appropriate bark texture based on type
+        switch(this.params.barkType) {
+          case 'birch':
+            this.generateBirchBark(ctx);
+            break;
+          case 'oak':
+            this.generateOakBark(ctx);
+            break;
+          case 'pine':
+            this.generatePineBark(ctx);
+            break;
+          case 'cherry':
+            this.generateCherryBark(ctx);
+            break;
+          case 'eucalyptus':
+            this.generatePeelingBark(ctx);
+            break;
+          case 'willow':
+            this.generateWillowBark(ctx);
+            break;
+          case 'maple':
+            this.generateMapleBark(ctx);
+            break;
+          default:
+            this.generateOakBark(ctx);
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        this.branchMaterial.map = texture;
+        this.branchMaterial.needsUpdate = true;
+        
+        // Generate and apply normal map for depth
+        this.addBarkNormalMap(ctx);
+      }
+      
+      // Birch bark - smooth with horizontal dark bands
+      generateBirchBark(ctx) {
+        const baseColor = new THREE.Color(this.params.barkColor);
+        const r = Math.floor(baseColor.r * 255);
+        const g = Math.floor(baseColor.g * 255);
+        const b = Math.floor(baseColor.b * 255);
+        
+        // Light cream base
+        ctx.fillStyle = `rgb(${Math.min(255, r + 100)}, ${Math.min(255, g + 100)}, ${Math.min(255, b + 100)})`;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        const scale = this.params.barkScale;
+        
+        // Horizontal dark bands (lenticels)
+        for (let i = 0; i < 30 * scale; i++) {
+          const y = Math.random() * 512;
+          const width = (50 + Math.random() * 100) * scale;
+          const height = (3 + Math.random() * 8) * scale;
+          
+          ctx.fillStyle = `rgba(40, 40, 40, ${0.6 + Math.random() * 0.3})`;
+          ctx.fillRect(0, y, width, height);
+          
+          // Peeling edges
+          if (Math.random() > 0.7) {
+            ctx.fillStyle = 'rgba(200, 200, 180, 0.4)';
+            ctx.fillRect(width - 10, y, 15, height + 2);
+          }
+        }
+        
+        // Paper-like texture
+        this.addNoisePattern(ctx, 8);
+      }
+      
+      // Oak bark - deep vertical furrows
+      generateOakBark(ctx) {
+        const baseColor = new THREE.Color(this.params.barkColor);
+        const r = Math.floor(baseColor.r * 255);
+        const g = Math.floor(baseColor.g * 255);
+        const b = Math.floor(baseColor.b * 255);
+        
+        // Dark brown base
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        const scale = this.params.barkScale;
+        const furrowCount = Math.floor(15 * scale);
+        
+        // Deep vertical furrows
+        for (let i = 0; i < furrowCount; i++) {
+          const x = (i / furrowCount) * 512 + (Math.random() - 0.5) * 30;
+          
+          // Dark furrow
+          ctx.strokeStyle = `rgb(${Math.floor(r * 0.4)}, ${Math.floor(g * 0.4)}, ${Math.floor(b * 0.4)})`;
+          ctx.lineWidth = 8 + Math.random() * 12;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          
+          for (let y = 0; y < 512; y += 10) {
+            const offset = Math.sin(y * 0.05) * 5 + (Math.random() - 0.5) * 3;
+            ctx.lineTo(x + offset, y);
+          }
+          ctx.stroke();
+          
+          // Ridge highlights
+          ctx.strokeStyle = `rgb(${Math.floor(r * 1.3)}, ${Math.floor(g * 1.3)}, ${Math.floor(b * 1.3)})`;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(x + 10, 0);
+          for (let y = 0; y < 512; y += 10) {
+            const offset = Math.sin(y * 0.05) * 5 + (Math.random() - 0.5) * 3;
+            ctx.lineTo(x + offset + 10, y);
+          }
+          ctx.stroke();
+        }
+        
+        // Rough texture
+        this.addNoisePattern(ctx, 20);
+      }
+      
+      // Pine bark - scaly plates
+      generatePineBark(ctx) {
+        const baseColor = new THREE.Color(this.params.barkColor);
+        const r = Math.floor(baseColor.r * 255);
+        const g = Math.floor(baseColor.g * 255);
+        const b = Math.floor(baseColor.b * 255);
+        
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        const scale = this.params.barkScale;
+        
+        // Scaly diamond pattern
+        for (let y = 0; y < 512; y += 40 * scale) {
+          for (let x = 0; x < 512; x += 35 * scale) {
+            const offsetX = (y / (40 * scale)) % 2 === 0 ? 0 : 17.5 * scale;
+            const cx = x + offsetX + (Math.random() - 0.5) * 5;
+            const cy = y + (Math.random() - 0.5) * 5;
+            const size = 15 + Math.random() * 10;
+            
+            // Scale plate
+            ctx.fillStyle = `rgb(${Math.floor(r * (0.8 + Math.random() * 0.4))}, ${Math.floor(g * (0.8 + Math.random() * 0.4))}, ${Math.floor(b * (0.8 + Math.random() * 0.4))})`;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - size);
+            ctx.lineTo(cx + size * 0.6, cy);
+            ctx.lineTo(cx, cy + size);
+            ctx.lineTo(cx - size * 0.6, cy);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Dark outline
+            ctx.strokeStyle = `rgba(${Math.floor(r * 0.5)}, ${Math.floor(g * 0.5)}, ${Math.floor(b * 0.5)}, 0.6)`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+        
+        this.addNoisePattern(ctx, 15);
+      }
+      
+      // Cherry bark - smooth with horizontal lenticels
+      generateCherryBark(ctx) {
+        const baseColor = new THREE.Color(this.params.barkColor);
+        const r = Math.floor(baseColor.r * 255);
+        const g = Math.floor(baseColor.g * 255);
+        const b = Math.floor(baseColor.b * 255);
+        
+        // Reddish-brown base
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        const scale = this.params.barkScale;
+        
+        // Horizontal lenticels (breathing pores)
+        for (let i = 0; i < 40 * scale; i++) {
+          const y = Math.random() * 512;
+          const width = 20 + Math.random() * 40;
+          const height = 2 + Math.random() * 4;
+          
+          ctx.fillStyle = `rgba(${Math.floor(r * 0.6)}, ${Math.floor(g * 0.6)}, ${Math.floor(b * 0.6)}, 0.7)`;
+          ctx.fillRect(Math.random() * (512 - width), y, width, height);
+        }
+        
+        // Glossy appearance with subtle vertical streaks
+        for (let i = 0; i < 50; i++) {
+          const x = Math.random() * 512;
+          ctx.strokeStyle = `rgba(${Math.floor(r * 1.2)}, ${Math.floor(g * 1.2)}, ${Math.floor(b * 1.2)}, 0.1)`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x + (Math.random() - 0.5) * 10, 512);
+          ctx.stroke();
+        }
+        
+        this.addNoisePattern(ctx, 10);
+      }
+      
+      // Eucalyptus/peeling bark
+      generatePeelingBark(ctx) {
+        const scale = this.params.barkScale;
+        
+        // Multi-layered peeling effect
+        const layers = [
+          { r: 139, g: 115, b: 85, peel: 0 },
+          { r: 212, g: 197, b: 176, peel: 0.3 },
+          { r: 240, g: 229, b: 216, peel: 0.6 },
+          { r: 184, g: 168, b: 138, peel: 0.8 }
+        ];
+        
+        // Base layer
+        ctx.fillStyle = `rgb(${layers[0].r}, ${layers[0].g}, ${layers[0].b})`;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        // Peeling patches
+        for (let layer = 1; layer < layers.length; layer++) {
+          const l = layers[layer];
+          ctx.fillStyle = `rgb(${l.r}, ${l.g}, ${l.b})`;
+          
+          for (let i = 0; i < 15 * scale; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const size = 30 + Math.random() * 60;
+            
+            // Organic blob
+            ctx.beginPath();
+            for (let angle = 0; angle < Math.PI * 2; angle += 0.3) {
+              const radius = size * (0.7 + Math.random() * 0.6);
+              const px = x + Math.cos(angle) * radius;
+              const py = y + Math.sin(angle) * radius;
+              if (angle === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            
+            // Curled edges
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+        }
+        
+        this.addNoisePattern(ctx, 12);
+      }
+      
+      // Willow bark - fibrous vertical texture
+      generateWillowBark(ctx) {
+        const baseColor = new THREE.Color(this.params.barkColor);
+        const r = Math.floor(baseColor.r * 255);
+        const g = Math.floor(baseColor.g * 255);
+        const b = Math.floor(baseColor.b * 255);
+        
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        const scale = this.params.barkScale;
+        
+        // Fine vertical fibers
+        for (let i = 0; i < 100 * scale; i++) {
+          const x = Math.random() * 512;
+          const variance = 0.8 + Math.random() * 0.4;
+          
+          ctx.strokeStyle = `rgba(${Math.floor(r * variance)}, ${Math.floor(g * variance)}, ${Math.floor(b * variance)}, ${0.3 + Math.random() * 0.3})`;
+          ctx.lineWidth = 0.5 + Math.random() * 2;
+          
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          
+          for (let y = 0; y < 512; y += 3) {
+            const offset = (Math.random() - 0.5) * 2;
+            ctx.lineTo(x + offset, y);
+          }
+          ctx.stroke();
+        }
+        
+        this.addNoisePattern(ctx, 12);
+      }
+      
+      // Maple bark - moderate furrows with gray tones
+      generateMapleBark(ctx) {
+        const baseColor = new THREE.Color(this.params.barkColor);
+        const r = Math.floor(baseColor.r * 255);
+        const g = Math.floor(baseColor.g * 255);
+        const b = Math.floor(baseColor.b * 255);
+        
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        const scale = this.params.barkScale;
+        
+        // Moderate vertical ridges
+        for (let i = 0; i < 20 * scale; i++) {
+          const x = (i / (20 * scale)) * 512;
+          
+          ctx.strokeStyle = `rgb(${Math.floor(r * 0.7)}, ${Math.floor(g * 0.7)}, ${Math.floor(b * 0.7)})`;
+          ctx.lineWidth = 4 + Math.random() * 6;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          
+          for (let y = 0; y < 512; y += 8) {
+            const offset = Math.sin(y * 0.08) * 4 + (Math.random() - 0.5) * 2;
+            ctx.lineTo(x + offset, y);
+          }
+          ctx.stroke();
+        }
+        
+        // Flaky texture
+        for (let i = 0; i < 50; i++) {
+          const x = Math.random() * 512;
+          const y = Math.random() * 512;
+          const size = 5 + Math.random() * 15;
+          
+          ctx.fillStyle = `rgba(${Math.floor(r * 1.2)}, ${Math.floor(g * 1.2)}, ${Math.floor(b * 1.2)}, 0.3)`;
+          ctx.fillRect(x, y, size, 2);
+        }
+        
+        this.addNoisePattern(ctx, 15);
+      }
+      
+      // Helper: Add noise pattern
+      addNoisePattern(ctx, intensity) {
+        const imageData = ctx.getImageData(0, 0, 512, 512);
+        for (let i = 0; i < imageData.data.length; i += 4) {
+          const noise = (Math.random() - 0.5) * intensity;
+          imageData.data[i] += noise;
+          imageData.data[i + 1] += noise;
+          imageData.data[i + 2] += noise;
+        }
+        ctx.putImageData(imageData, 0, 0);
+      }
+      
+      // Generate normal map from bark texture for depth
+      addBarkNormalMap(sourceCtx) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // Get source image data as heightmap
+        const sourceData = sourceCtx.getImageData(0, 0, 512, 512);
+        const normalData = ctx.createImageData(512, 512);
+        
+        const strength = this.params.barkDepth * 2;
+        
+        for (let y = 1; y < 511; y++) {
+          for (let x = 1; x < 511; x++) {
+            const idx = (y * 512 + x) * 4;
+            
+            // Sample neighboring pixels for height
+            const heightL = sourceData.data[(y * 512 + x - 1) * 4];
+            const heightR = sourceData.data[(y * 512 + x + 1) * 4];
+            const heightU = sourceData.data[((y - 1) * 512 + x) * 4];
+            const heightD = sourceData.data[((y + 1) * 512 + x) * 4];
+            
+            // Calculate gradients
+            const dX = (heightR - heightL) / 255 * strength;
+            const dY = (heightD - heightU) / 255 * strength;
+            
+            // Normalize and encode as RGB
+            const len = Math.sqrt(dX * dX + dY * dY + 1);
+            normalData.data[idx] = ((dX / len) * 0.5 + 0.5) * 255;     // R
+            normalData.data[idx + 1] = ((dY / len) * 0.5 + 0.5) * 255; // G
+            normalData.data[idx + 2] = ((1 / len) * 0.5 + 0.5) * 255;  // B
+            normalData.data[idx + 3] = 255; // A
+          }
+        }
+        
+        ctx.putImageData(normalData, 0, 0);
+        
+        const normalMap = new THREE.CanvasTexture(canvas);
+        normalMap.wrapS = THREE.RepeatWrapping;
+        normalMap.wrapT = THREE.RepeatWrapping;
+        
+        this.branchMaterial.normalMap = normalMap;
+        this.branchMaterial.normalScale = new THREE.Vector2(this.params.barkDepth, this.params.barkDepth);
+        this.branchMaterial.needsUpdate = true;
+      }
+
+      // Get simplified segment count based on LOD level
+      getSegmentCountForLOD(baseSegments, depth) {
+        const lodMultipliers = [1.0, 0.75, 0.5, 0.35, 0.25];
+        const multiplier = lodMultipliers[this.params.lodLevel] || 0.25;
+        return Math.max(3, Math.floor(baseSegments * multiplier));
+      }
+      
+      // Create tapered cylinder geometry for branch (optimized with LOD)
+      createBranchGeometry(startPos, endPos, startRadius, endRadius, depth) {
+        const direction = new THREE.Vector3().subVectors(endPos, startPos);
+        const length = direction.length();
+        const midPoint = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
+
+        // Use fewer segments for smaller/deeper branches (LOD optimization)
+        const baseSegments = Math.max(4, Math.floor(8 - depth));
+        const segments = this.getSegmentCountForLOD(baseSegments, depth);
+        const geometry = new THREE.CylinderGeometry(endRadius, startRadius, length, segments, 1);
+        
+        // Add wind influence attribute for animation
+        const posCount = geometry.attributes.position.count;
+        const windInfluence = new Float32Array(posCount);
+        const branchHeight = new Float32Array(posCount);
+        
+        for (let i = 0; i < posCount; i++) {
+          // Higher branches sway more
+          windInfluence[i] = Math.min(1.0, depth / this.params.maxDepth);
+          branchHeight[i] = startPos.y + (endPos.y - startPos.y) * 0.5;
+        }
+        
+        geometry.setAttribute('windInfluence', new THREE.BufferAttribute(windInfluence, 1));
+        geometry.setAttribute('branchHeight', new THREE.BufferAttribute(branchHeight, 1));
+        
+        // Create temporary mesh for transformation
+        const cylinder = new THREE.Mesh(geometry);
+        cylinder.position.copy(midPoint);
+        const axis = new THREE.Vector3(0, 1, 0);
+        cylinder.quaternion.setFromUnitVectors(axis, direction.clone().normalize());
+        cylinder.updateMatrix();
+        
+        // Apply transformation to geometry
+        geometry.applyMatrix4(cylinder.matrix);
+        
+        this.polyCount += geometry.attributes.position.count;
+        this.branchGeometries.push(geometry);
+      }
+
+      // Recursive branch generation
+      generateBranches(startPos, direction, length, radius, depth) {
+        // Reduce max depth for lower LOD levels
+        const lodDepthReduction = [0, 1, 2, 3, 4];
+        const effectiveMaxDepth = Math.max(2, this.params.maxDepth - lodDepthReduction[this.params.lodLevel]);
+        
+        if (depth > effectiveMaxDepth || length < 0.1) {
+          // Store leaf position for later instanced rendering
+          this.leafPositions.push(startPos.clone());
+          // Store flower positions at branch tips (outer branches)
+          if (depth >= this.params.maxDepth - 1) {
+            this.flowerPositions.push(startPos.clone());
+          }
+          return;
+        }
+
+        const endPos = new THREE.Vector3().copy(startPos).add(
+          direction.clone().multiplyScalar(length)
+        );
+        const endRadius = radius * this.params.thicknessRatio;
+
+        // Create branch geometry (will be merged later)
+        this.createBranchGeometry(startPos, endPos, radius, endRadius, depth);
+        
+        // Store fruit positions on mid-level branches (not too high, not at base)
+        if (depth >= 2 && depth <= this.params.maxDepth - 2) {
+          this.fruitPositions.push(endPos.clone());
+        }
+
+        // Determine number of child branches with some randomness
+        const branchCount = Math.floor(this.params.branchCount + (this.rng.random() - 0.5));
+        
+        for (let i = 0; i < branchCount; i++) {
+          // Calculate branch angle with variation
+          const angleRange = this.params.maxAngle - this.params.minAngle;
+          const angle = (this.params.minAngle + this.rng.random() * angleRange) * Math.PI / 180;
+          
+          // Random rotation around parent branch
+          const rotationAngle = (i / branchCount) * Math.PI * 2 + this.rng.random() * 0.5;
+
+          // Create new direction vector
+          const newDir = direction.clone();
+          
+          // Apply rotation around perpendicular axis
+          const perpAxis = new THREE.Vector3(
+            this.rng.random() - 0.5,
+            0,
+            this.rng.random() - 0.5
+          ).normalize();
+          newDir.applyAxisAngle(perpAxis, angle);
+          
+          // Apply rotation around original direction
+          newDir.applyAxisAngle(direction, rotationAngle);
+          newDir.normalize();
+
+          // Recurse with reduced length and radius
+          const newLength = length * (0.6 + this.rng.random() * 0.2);
+          this.generateBranches(endPos, newDir, newLength, endRadius, depth + 1);
+        }
+      }
+
+      // Generate root structure with exposed and underground portions
+      generateRoots() {
+        const rootCount = this.params.rootCount;
+        const rootLength = this.params.height * 0.4;
+        const rootRadius = this.params.height * 0.09;
+
+        for (let i = 0; i < rootCount; i++) {
+          const angle = (i / rootCount) * Math.PI * 2 + (this.rng.random() - 0.5) * 0.3;
+          
+          // Create main root starting from base, going up slightly then down and outward
+          const startPos = new THREE.Vector3(0, 0.2, 0); // Start slightly above ground
+          
+          // First segment: exposed root arching out and down
+          const exposedLength = rootLength * (0.3 + this.rng.random() * 0.2);
+          const midHeight = 0.3 + this.rng.random() * 0.4; // Peak height of exposed root
+          
+          const midPos = new THREE.Vector3(
+            Math.cos(angle) * exposedLength * 0.5,
+            midHeight,
+            Math.sin(angle) * exposedLength * 0.5
+          );
+          
+          // Create exposed portion (arching upward)
+          this.createBranchGeometry(
+            startPos,
+            midPos,
+            rootRadius * 0.8,
+            rootRadius * 0.7,
+            0
+          );
+          
+          // Second segment: transitioning to ground level
+          const groundPos = new THREE.Vector3(
+            Math.cos(angle) * exposedLength,
+            -0.1,
+            Math.sin(angle) * exposedLength
+          );
+          
+          this.createBranchGeometry(
+            midPos,
+            groundPos,
+            rootRadius * 0.7,
+            rootRadius * 0.6,
+            0
+          );
+          
+          // Third segment: going underground
+          const undergroundPos = new THREE.Vector3(
+            Math.cos(angle) * rootLength,
+            -0.5 - this.rng.random() * 0.5,
+            Math.sin(angle) * rootLength
+          );
+          
+          this.createBranchGeometry(
+            groundPos,
+            undergroundPos,
+            rootRadius * 0.6,
+            rootRadius * 0.3,
+            0
+          );
+          
+          // Add smaller branch roots
+          const branchRootCount = 2 + Math.floor(this.rng.random() * 2);
+          for (let j = 0; j < branchRootCount; j++) {
+            const branchStart = new THREE.Vector3().lerpVectors(
+              groundPos, 
+              undergroundPos, 
+              this.rng.random()
+            );
+            
+            const branchAngle = angle + (this.rng.random() - 0.5) * Math.PI * 0.5;
+            const branchLength = rootLength * (0.2 + this.rng.random() * 0.3);
+            
+            const branchEnd = new THREE.Vector3(
+              branchStart.x + Math.cos(branchAngle) * branchLength,
+              branchStart.y - 0.3 - this.rng.random() * 0.4,
+              branchStart.z + Math.sin(branchAngle) * branchLength
+            );
+            
+            this.createBranchGeometry(
+              branchStart,
+              branchEnd,
+              rootRadius * 0.4,
+              rootRadius * 0.2,
+              0
+            );
+          }
+        }
+      }
+
+      // Create instanced flowers with petal clusters
+      createInstancedFlowers() {
+        const flowerCount = Math.floor(this.flowerPositions.length * this.params.flowerDensity / 100);
+        if (flowerCount === 0) return null;
+        
+        // Use small spheres clustered together to simulate petals
+        const flowerGeometry = new THREE.SphereGeometry(this.params.flowerSize * 0.5, 6, 6);
+        const instancedFlowers = new THREE.InstancedMesh(
+          flowerGeometry,
+          this.flowerMaterial,
+          flowerCount * 5 // 5 "petals" per flower
+        );
+        
+        instancedFlowers.instanceColor = new THREE.InstancedBufferAttribute(
+          new Float32Array(flowerCount * 5 * 3), 3
+        );
+        
+        const matrix = new THREE.Matrix4();
+        const position = new THREE.Vector3();
+        const quaternion = new THREE.Quaternion();
+        const scale = new THREE.Vector3();
+        const color = new THREE.Color();
+        const baseColor = new THREE.Color(this.params.flowerColor);
+        
+        let instanceIndex = 0;
+        
+        for (let i = 0; i < flowerCount; i++) {
+          const branchPos = this.flowerPositions[Math.floor(this.rng.random() * this.flowerPositions.length)];
+          const centerPos = branchPos.clone();
+          
+          // Create 5 petals in a circular pattern
+          for (let petal = 0; petal < 5; petal++) {
+            const angle = (petal / 5) * Math.PI * 2;
+            const petalRadius = this.params.flowerSize * 0.6;
+            
+            position.set(
+              centerPos.x + Math.cos(angle) * petalRadius,
+              centerPos.y,
+              centerPos.z + Math.sin(angle) * petalRadius
+            );
+            
+            const scaleVariation = 0.8 + this.rng.random() * 0.4;
+            scale.set(scaleVariation, scaleVariation, scaleVariation);
+            
+            matrix.compose(position, quaternion, scale);
+            instancedFlowers.setMatrixAt(instanceIndex, matrix);
+            
+            // Color variation for petals
+            const variation = 0.9 + this.rng.random() * 0.2;
+            color.setRGB(
+              baseColor.r * variation,
+              baseColor.g * variation,
+              baseColor.b * variation
+            );
+            instancedFlowers.setColorAt(instanceIndex, color);
+            
+            instanceIndex++;
+          }
+        }
+        
+        instancedFlowers.instanceMatrix.needsUpdate = true;
+        instancedFlowers.instanceColor.needsUpdate = true;
+        this.polyCount += flowerGeometry.attributes.position.count * instanceIndex;
+        
+        return instancedFlowers;
+      }
+      
+      // Create instanced fruits
+      createInstancedFruits() {
+        const fruitCount = Math.floor(this.fruitPositions.length * this.params.fruitDensity / 100);
+        if (fruitCount === 0) return null;
+        
+        const fruitGeometry = new THREE.SphereGeometry(this.params.fruitSize, 8, 8);
+        const instancedFruits = new THREE.InstancedMesh(
+          fruitGeometry,
+          this.fruitMaterial,
+          fruitCount
+        );
+        
+        instancedFruits.instanceColor = new THREE.InstancedBufferAttribute(
+          new Float32Array(fruitCount * 3), 3
+        );
+        
+        const matrix = new THREE.Matrix4();
+        const position = new THREE.Vector3();
+        const quaternion = new THREE.Quaternion();
+        const scale = new THREE.Vector3();
+        const color = new THREE.Color();
+        const baseColor = new THREE.Color(this.params.fruitColor);
+        
+        for (let i = 0; i < fruitCount; i++) {
+          const branchPos = this.fruitPositions[Math.floor(this.rng.random() * this.fruitPositions.length)];
+          
+          // Hang fruits slightly below branch
+          position.set(
+            branchPos.x + (this.rng.random() - 0.5) * 0.5,
+            branchPos.y - this.params.fruitSize * 1.5,
+            branchPos.z + (this.rng.random() - 0.5) * 0.5
+          );
+          
+          const scaleVariation = 0.7 + this.rng.random() * 0.6;
+          scale.set(scaleVariation, scaleVariation, scaleVariation);
+          
+          matrix.compose(position, quaternion, scale);
+          instancedFruits.setMatrixAt(i, matrix);
+          
+          // Color variation
+          const variation = 0.85 + this.rng.random() * 0.3;
+          color.setRGB(
+            baseColor.r * variation,
+            baseColor.g * variation,
+            baseColor.b * (0.8 + this.rng.random() * 0.4)
+          );
+          instancedFruits.setColorAt(i, color);
+        }
+        
+        instancedFruits.instanceMatrix.needsUpdate = true;
+        instancedFruits.instanceColor.needsUpdate = true;
+        this.polyCount += fruitGeometry.attributes.position.count * fruitCount;
+        
+        return instancedFruits;
+      }
+      
+      // Create instanced leaves for optimal performance with color variation
+      createInstancedLeaves() {
+        // Reduce leaf count for lower LOD levels
+        const lodLeafMultipliers = [1.0, 0.8, 0.5, 0.3, 0.1];
+        const lodMultiplier = lodLeafMultipliers[this.params.lodLevel] || 0.1;
+        const leafCount = Math.floor(this.leafPositions.length * this.params.leafDensity / 20 * lodMultiplier);
+        
+        if (leafCount === 0) return null;
+        
+        // Use simple plane geometry instead of spheres for better performance
+        const leafGeometry = new THREE.PlaneGeometry(0.5, 0.5);
+        
+        // Use standard material for all LOD levels for reliability
+        const instancedLeaves = new THREE.InstancedMesh(
+          leafGeometry,
+          this.leafMaterial,
+          leafCount
+        );
+
+        // Enable per-instance color variation
+        instancedLeaves.instanceColor = new THREE.InstancedBufferAttribute(
+          new Float32Array(leafCount * 3), 3
+        );
+
+        const matrix = new THREE.Matrix4();
+        const position = new THREE.Vector3();
+        const rotation = new THREE.Euler();
+        const quaternion = new THREE.Quaternion();
+        const scale = new THREE.Vector3();
+        const color = new THREE.Color();
+        const baseColor = new THREE.Color(this.params.leafColor);
+
+        let instanceIndex = 0;
+        const leavesPerBranch = Math.floor(this.params.leafDensity / 20);
+
+        for (const branchPos of this.leafPositions) {
+          for (let i = 0; i < leavesPerBranch && instanceIndex < leafCount; i++) {
+            // Random position around branch endpoint
+            position.set(
+              branchPos.x + (this.rng.random() - 0.5) * 1.5,
+              branchPos.y + (this.rng.random() - 0.5) * 1.5,
+              branchPos.z + (this.rng.random() - 0.5) * 1.5
+            );
+
+            // Random rotation for variety
+            rotation.set(
+              this.rng.random() * Math.PI,
+              this.rng.random() * Math.PI,
+              this.rng.random() * Math.PI
+            );
+            quaternion.setFromEuler(rotation);
+
+            // Random scale variation
+            const scaleVariation = 0.8 + this.rng.random() * 0.4;
+            scale.set(scaleVariation, scaleVariation, scaleVariation);
+
+            matrix.compose(position, quaternion, scale);
+            instancedLeaves.setMatrixAt(instanceIndex, matrix);
+            
+            // Add color variation for more realistic foliage
+            const variation = 0.85 + this.rng.random() * 0.3;
+            color.setRGB(
+              baseColor.r * variation,
+              baseColor.g * variation,
+              baseColor.b * (0.9 + this.rng.random() * 0.2)
+            );
+            instancedLeaves.setColorAt(instanceIndex, color);
+            
+            instanceIndex++;
+          }
+        }
+
+        instancedLeaves.instanceMatrix.needsUpdate = true;
+        if (instancedLeaves.instanceColor) {
+          instancedLeaves.instanceColor.needsUpdate = true;
+        }
+        this.polyCount += leafGeometry.attributes.position.count * instanceIndex;
+        
+        return instancedLeaves;
+      }
+
+      // Create billboard impostor for very distant LOD
+      createBillboardImpostor() {
+        // Create a simple procedural billboard texture instead of rendering
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 384; // Taller for tree shape
+        const ctx = canvas.getContext('2d');
+        
+        // Clear with transparency
+        ctx.clearRect(0, 0, 256, 384);
+        
+        // Draw simple tree silhouette
+        const centerX = 128;
+        const baseY = 350;
+        
+        // Trunk
+        ctx.fillStyle = '#4a3728';
+        ctx.fillRect(centerX - 10, baseY - 100, 20, 100);
+        
+        // Crown - simple blob shape
+        const crownColor = new THREE.Color(this.params.leafColor);
+        ctx.fillStyle = `rgb(${Math.floor(crownColor.r*255)}, ${Math.floor(crownColor.g*255)}, ${Math.floor(crownColor.b*255)})`;
+        
+        // Draw multiple overlapping circles for foliage
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const offsetX = (Math.random() - 0.5) * 60;
+          const offsetY = (Math.random() - 0.5) * 60;
+          const radius = 40 + Math.random() * 30;
+          ctx.moveTo(centerX + offsetX + radius, baseY - 120 + offsetY);
+          ctx.arc(centerX + offsetX, baseY - 120 + offsetY, radius, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        
+        // Add some darker spots for depth
+        ctx.fillStyle = `rgba(${Math.floor(crownColor.r*200)}, ${Math.floor(crownColor.g*200)}, ${Math.floor(crownColor.b*200)}, 0.5)`;
+        for (let i = 0; i < 3; i++) {
+          const offsetX = (Math.random() - 0.5) * 40;
+          const offsetY = (Math.random() - 0.5) * 40;
+          const radius = 25 + Math.random() * 20;
+          ctx.beginPath();
+          ctx.arc(centerX + offsetX, baseY - 120 + offsetY, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        
+        // Create billboard mesh
+        const billboardGeometry = new THREE.PlaneGeometry(this.params.height * 1.5, this.params.height * 2.0);
+        const billboardMaterial = new THREE.MeshBasicMaterial({
+          map: texture,
+          transparent: true,
+          side: THREE.DoubleSide,
+          alphaTest: 0.5
+        });
+        
+        const billboard = new THREE.Mesh(billboardGeometry, billboardMaterial);
+        billboard.position.y = this.params.height * 0.75;
+        
+        this.polyCount = billboardGeometry.attributes.position.count;
+        
+        return billboard;
+      }
+      
+      // Main generation method
+      generate() {
+        // Use billboard impostor for very distant trees (but not during billboard creation itself)
+        if (this.params.useBillboard && this.params.lodLevel < 5) {
+          const billboard = this.createBillboardImpostor();
+          const group = new THREE.Group();
+          group.add(billboard);
+          return group;
+        }
+        
+        const treeGroup = new THREE.Group();
+        this.polyCount = 0;
+        this.branchGeometries = [];
+        this.leafPositions = [];
+        this.flowerPositions = [];
+        this.fruitPositions = [];
+
+        // Update material colors
+        this.leafMaterial.color.setHex(this.params.leafColor);
+        this.flowerMaterial.color.setHex(this.params.flowerColor);
+        this.flowerMaterial.emissive.setHex(this.params.flowerColor);
+        this.fruitMaterial.color.setHex(this.params.fruitColor);
+
+        // Generate roots if enabled
+        if (this.params.showRoots) {
+          this.generateRoots();
+        }
+
+        // Generate trunk and branches
+        const trunkRadius = this.params.height * 0.1;
+        const initialDirection = new THREE.Vector3(0, 1, 0);
+        
+        this.generateBranches(
+          new THREE.Vector3(0, 0, 0),
+          initialDirection,
+          this.params.height,
+          trunkRadius,
+          0
+        );
+
+        // Merge all branch geometries into a single mesh
+        if (this.branchGeometries.length > 0) {
+          const mergedGeometry = new THREE.BufferGeometry();
+          const geometries = this.branchGeometries;
+          
+          // Use BufferGeometryUtils if available, otherwise manual merge
+          if (BufferGeometryUtils) {
+            const merged = BufferGeometryUtils.mergeGeometries(geometries);
+            mergedGeometry.copy(merged);
+          } else {
+            // Fallback: add geometries as separate meshes but reuse material
+            geometries.forEach(geo => {
+              const mesh = new THREE.Mesh(geo, this.branchMaterial);
+              treeGroup.add(mesh);
+            });
+          }
+          
+          // Add merged branches if we successfully merged
+          if (mergedGeometry.attributes.position) {
+            const branchMesh = new THREE.Mesh(mergedGeometry, this.branchMaterial);
+            treeGroup.add(branchMesh);
+          }
+        }
+
+        // Create instanced leaves if enabled
+        if (this.params.showLeaves && this.leafPositions.length > 0) {
+          const leaves = this.createInstancedLeaves();
+          if (leaves) {
+            leaves.castShadow = true;
+            leaves.receiveShadow = true;
+            treeGroup.add(leaves);
+          }
+        }
+        
+        // Create flowers if enabled
+        if (this.params.showFlowers && this.flowerPositions.length > 0) {
+          const flowers = this.createInstancedFlowers();
+          if (flowers) {
+            flowers.castShadow = true;
+            flowers.receiveShadow = true;
+            treeGroup.add(flowers);
+          }
+        }
+        
+        // Create fruits if enabled
+        if (this.params.showFruits && this.fruitPositions.length > 0) {
+          const fruits = this.createInstancedFruits();
+          if (fruits) {
+            fruits.castShadow = true;
+            fruits.receiveShadow = true;
+            treeGroup.add(fruits);
+          }
+        }
+
+        return treeGroup;
+      }
+    }
+
+    // Scene Setup
+    let scene, camera, renderer, controls, tree, gui;
+    let frameCount = 0, lastTime = Date.now();
+
+    // Tree parameters for GUI
+    const treeParams = {
+      height: 8,
+      branchCount: 3,
+      maxDepth: 7,
+      minAngle: 10,
+      maxAngle: 25,
+      thicknessRatio: 0.55,
+      leafDensity: 60,
+      leafColor: 0x2d5016,
+      seed: 12345,
+      showRoots: true,
+      showLeaves: true,
+      rootCount: 3,
+      showFlowers: false,
+      flowerDensity: 30,
+      flowerColor: 0xffb6c1,
+      flowerSize: 0.3,
+      showFruits: false,
+      fruitDensity: 20,
+      fruitColor: 0xff4444,
+      fruitSize: 0.4,
+      enableLOD: false,
+      lodLevel: 0,
+      useBillboard: false,
+      lodDistance0: 0,
+      lodDistance1: 60,
+      lodDistance2: 120,
+      lodDistance3: 200,
+      lodDistance4: 300,
+      barkType: 'oak',
+      barkRoughness: 0.9,
+      barkColor: 0x4a3728,
+      barkScale: 1.0,
+      barkDepth: 0.5,
+      windEnabled: false,
+      windStrength: 0.3,
+      windSpeed: 1.0,
+      regenerate: function() {
+        generateTree();
+      },
+      exportGLTF: function() {
+        exportTreeAsGLTF();
+      },
+      screenshot: function() {
+        takeScreenshot();
+      },
+      savePreset: function() {
+        saveCurrentPreset();
+      },
+      loadPreset: function() {
+        loadSavedPreset();
+      },
+      presetOak: function() {
+        treeParams.height = 10;
+        treeParams.branchCount = 3;
+        treeParams.maxDepth = 5;
+        treeParams.minAngle = 25;
+        treeParams.maxAngle = 45;
+        treeParams.thicknessRatio = 0.7;
+        treeParams.leafDensity = 80;
+        treeParams.leafColor = 0x2d5016;
+        treeParams.showRoots = false;
+        treeParams.showLeaves = true;
+        treeParams.rootCount = 7;
+        treeParams.barkType = 'oak';
+        treeParams.barkRoughness = 0.95;
+        treeParams.barkColor = 0x3e2723;
+        treeParams.barkScale = 1.0;
+        treeParams.barkDepth = 0.8;
+        treeParams.showFlowers = true;
+        treeParams.flowerDensity = 25;
+        treeParams.flowerColor = 0xffc0cb;
+        treeParams.flowerSize = 0.25;
+        treeParams.showFruits = false;
+        treeParams.fruitDensity = 15;
+        treeParams.fruitColor = 0x8b4513;
+        treeParams.fruitSize = 0.3;
+        treeParams.seed = Math.floor(Math.random() * 100000);
+        updateGUI();
+        generateTree();
+      },
+      presetPine: function() {
+        treeParams.height = 15;
+        treeParams.branchCount = 5;
+        treeParams.maxDepth = 6;
+        treeParams.minAngle = 15;
+        treeParams.maxAngle = 30;
+        treeParams.thicknessRatio = 0.8;
+        treeParams.leafDensity = 100;
+        treeParams.leafColor = 0x1a4d0a;
+        treeParams.showRoots = false;
+        treeParams.showLeaves = true;
+        treeParams.rootCount = 6;
+        treeParams.barkType = 'pine';
+        treeParams.barkRoughness = 0.85;
+        treeParams.barkColor = 0x6d4c41;
+        treeParams.barkScale = 1.0;
+        treeParams.barkDepth = 0.5;
+        treeParams.showFlowers = false;
+        treeParams.flowerDensity = 0;
+        treeParams.flowerColor = 0xffb6c1;
+        treeParams.flowerSize = 0.2;
+        treeParams.showFruits = true;
+        treeParams.fruitDensity = 30;
+        treeParams.fruitColor = 0x8b7355;
+        treeParams.fruitSize = 0.5;
+        treeParams.seed = Math.floor(Math.random() * 100000);
+        updateGUI();
+        generateTree();
+      },
+      presetWillow: function() {
+        treeParams.height = 8;
+        treeParams.branchCount = 2;
+        treeParams.maxDepth = 6;
+        treeParams.minAngle = 45;
+        treeParams.maxAngle = 90;
+        treeParams.thicknessRatio = 0.6;
+        treeParams.leafDensity = 70;
+        treeParams.leafColor = 0x3a6b1f;
+        treeParams.showRoots = false;
+        treeParams.showLeaves = true;
+        treeParams.rootCount = 8;
+        treeParams.barkType = 'willow';
+        treeParams.barkRoughness = 0.8;
+        treeParams.barkColor = 0x5d4e37;
+        treeParams.barkScale = 1.2;
+        treeParams.barkDepth = 0.4;
+        treeParams.showFlowers = true;
+        treeParams.flowerDensity = 20;
+        treeParams.flowerColor = 0xfffacd;
+        treeParams.flowerSize = 0.2;
+        treeParams.showFruits = false;
+        treeParams.fruitDensity = 10;
+        treeParams.fruitColor = 0x90ee90;
+        treeParams.fruitSize = 0.25;
+        treeParams.seed = Math.floor(Math.random() * 100000);
+        updateGUI();
+        generateTree();
+      }
+    };
+
+    function init() {
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x87ceeb);
+      scene.fog = new THREE.Fog(0x87ceeb, 50, 100);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(21.9, 35.0, 19.4);
+
+      // Renderer - WebGPU Enhanced settings
+      renderer = new THREE.WebGPURenderer({ 
+        antialias: true,
+        forceWebGL: false
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.shadowMap.enabled = true;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+      
+      // Initialize renderer asynchronously (required for WebGPU)
+      renderer.init().then(() => {
+        document.body.appendChild(renderer.domElement);
+        
+        // Continue setup after renderer is ready
+        setupSceneAndAnimate();
+      }).catch(error => {
+        console.error('WebGPU initialization failed:', error);
+        alert('WebGPU is not supported in your browser. Please use Chrome 113+ or Edge 113+');
+      });
+    }
+    
+    function setupSceneAndAnimate() {
+      // Controls
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // Lighting - Enhanced for PBR materials with bright sunlight
+      const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
+      scene.add(ambientLight);
+
+      // Sun - bright directional light from above
+      const directionalLight = new THREE.DirectionalLight(0xffffee, 4.0);
+      directionalLight.position.set(50, 80, 30);
+      directionalLight.castShadow = true;
+      
+      // Optimize shadow map
+      directionalLight.shadow.mapSize.width = 2048;
+      directionalLight.shadow.mapSize.height = 2048;
+      directionalLight.shadow.camera.near = 0.5;
+      directionalLight.shadow.camera.far = 150;
+      directionalLight.shadow.camera.left = -50;
+      directionalLight.shadow.camera.right = 50;
+      directionalLight.shadow.camera.top = 50;
+      directionalLight.shadow.camera.bottom = -50;
+      directionalLight.shadow.bias = -0.001;
+      scene.add(directionalLight);
+
+      const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x8b7355, 1.5);
+      scene.add(hemisphereLight);
+
+      // Ground - Enhanced with PBR material
+      const groundGeometry = new THREE.PlaneGeometry(100, 100);
+      const groundMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x3a5f0b,
+        roughness: 0.95,
+        metalness: 0.0
+      });
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      // GUI Setup
+      gui = new dat.GUI();
+      
+      const treeFolder = gui.addFolder('Tree Parameters');
+      treeFolder.add(treeParams, 'height', 5, 20).name('Height');
+      treeFolder.add(treeParams, 'branchCount', 1, 8).step(1).name('Branches/Node');
+      treeFolder.add(treeParams, 'maxDepth', 3, 10).step(1).name('Max Depth');
+      treeFolder.add(treeParams, 'minAngle', 10, 45).name('Min Angle');
+      treeFolder.add(treeParams, 'maxAngle', 30, 90).name('Max Angle');
+      treeFolder.add(treeParams, 'thicknessRatio', 0.5, 0.9).name('Thickness Ratio');
+      treeFolder.add(treeParams, 'leafDensity', 20, 200).name('Leaf Density');
+      treeFolder.addColor(treeParams, 'leafColor').name('Leaf Color');
+      treeFolder.add(treeParams, 'seed', 0, 100000).step(1).name('Random Seed');
+      treeFolder.add(treeParams, 'showRoots').name('Show Roots');
+      treeFolder.add(treeParams, 'rootCount', 1, 15).step(1).name('Root Count');
+      treeFolder.add(treeParams, 'showLeaves').name('Show Leaves');
+      treeFolder.open();
+      
+      const barkFolder = gui.addFolder('🌳 Bark Variation');
+      barkFolder.add(treeParams, 'barkType', [
+        'oak', 'birch', 'pine', 'cherry', 'eucalyptus', 'willow', 'maple'
+      ]).name('Bark Type').onChange(() => generateTree());
+      barkFolder.add(treeParams, 'barkRoughness', 0, 1).name('Roughness').onChange(() => generateTree());
+      barkFolder.addColor(treeParams, 'barkColor').name('Base Color').onChange(() => generateTree());
+      barkFolder.add(treeParams, 'barkScale', 0.5, 2.0).name('Pattern Scale').onChange(() => generateTree());
+      barkFolder.add(treeParams, 'barkDepth', 0, 1.5).name('Relief Depth').onChange(() => generateTree());
+      
+      const floraFolder = gui.addFolder('🌸 Flowers & Fruits');
+      floraFolder.add(treeParams, 'showFlowers').name('Show Flowers');
+      floraFolder.add(treeParams, 'flowerDensity', 0, 100).name('Flower Density %');
+      floraFolder.addColor(treeParams, 'flowerColor').name('Flower Color');
+      floraFolder.add(treeParams, 'flowerSize', 0.1, 1.0).name('Flower Size');
+      floraFolder.add(treeParams, 'showFruits').name('Show Fruits');
+      floraFolder.add(treeParams, 'fruitDensity', 0, 100).name('Fruit Density %');
+      floraFolder.addColor(treeParams, 'fruitColor').name('Fruit Color');
+      floraFolder.add(treeParams, 'fruitSize', 0.1, 1.5).name('Fruit Size');
+      
+      const lodFolder = gui.addFolder('⚡ LOD System');
+      lodFolder.add(treeParams, 'enableLOD').name('Enable Auto LOD').onChange(function() {
+        if (treeParams.enableLOD) {
+          setupLODSystem();
+        } else {
+          removeLODSystem();
+        }
+      });
+      lodFolder.add(treeParams, 'lodLevel', 0, 4).step(1).name('Manual LOD Level (0=High)');
+      lodFolder.add(treeParams, 'useBillboard').name('Use Billboard');
+      lodFolder.add(treeParams, 'lodDistance0', 0, 20).name('LOD 0 Distance (min)');
+      lodFolder.add(treeParams, 'lodDistance1', 20, 200).name('LOD 1 Distance');
+      lodFolder.add(treeParams, 'lodDistance2', 50, 300).name('LOD 2 Distance');
+      lodFolder.add(treeParams, 'lodDistance3', 100, 400).name('LOD 3 Distance');
+      lodFolder.add(treeParams, 'lodDistance4', 150, 500).name('LOD 4 Distance');
+      
+      const windFolder = gui.addFolder('Wind Animation');
+      windFolder.add(treeParams, 'windEnabled').name('Enable Wind');
+      windFolder.add(treeParams, 'windStrength', 0, 2).name('Wind Strength');
+      windFolder.add(treeParams, 'windSpeed', 0.1, 3).name('Wind Speed');
+      
+      const actionsFolder = gui.addFolder('Actions');
+      actionsFolder.add(treeParams, 'regenerate').name('🔄 Regenerate Tree');
+      actionsFolder.add(treeParams, 'exportGLTF').name('💾 Export GLTF');
+      actionsFolder.add(treeParams, 'screenshot').name('📷 Screenshot');
+      actionsFolder.add(treeParams, 'savePreset').name('💾 Save Preset');
+      actionsFolder.add(treeParams, 'loadPreset').name('📂 Load Preset');
+      
+      const presetsFolder = gui.addFolder('Tree Presets');
+      presetsFolder.add(treeParams, 'presetOak').name('🌳 Oak Tree');
+      presetsFolder.add(treeParams, 'presetPine').name('🌲 Pine Tree');
+      presetsFolder.add(treeParams, 'presetWillow').name('🌿 Willow Tree');
+
+      // Generate initial tree
+      generateTree();
+      
+      // Handle window resize
+      window.addEventListener('resize', onWindowResize, false);
+      
+      // Start animation loop
+      animate();
+    }
+
+    function updateGUI() {
+      gui.__controllers.forEach(controller => controller.updateDisplay());
+    }
+
+    // LOD system variables
+    let lodGroup = null;
+    let lodLevels = [];
+    
+    function setupLODSystem() {
+      removeLODSystem();
+      
+      // Create LOD object
+      lodGroup = new THREE.LOD();
+      lodLevels = [];
+      
+      // Scale distances based on tree height for better proportions
+      const heightScale = treeParams.height / 10; // Normalize to default height of 10
+      const distances = [
+        treeParams.lodDistance0,
+        treeParams.lodDistance1 * heightScale,
+        treeParams.lodDistance2 * heightScale,
+        treeParams.lodDistance3 * heightScale,
+        treeParams.lodDistance4 * heightScale
+      ];
+      
+      // Generate LOD levels asynchronously to avoid freezing
+      let currentLevel = 0;
+      
+      function generateNextLevel() {
+        if (currentLevel < 5) {
+          const lodParams = { ...treeParams, lodLevel: currentLevel };
+          const generator = new TreeGenerator(lodParams);
+          const lodTree = generator.generate();
+          
+          lodTree.traverse((child) => {
+            if (child.isMesh) {
+              // Enable shadows and ensure visibility for all LOD levels
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+          
+          lodLevels.push(lodTree);
+          // Invert distance assignment: LOD 0 (high detail) at largest distance shows when closest
+          lodGroup.addLevel(lodTree, distances[4 - currentLevel]);
+          
+          currentLevel++;
+          
+          // Use setTimeout to allow UI to update between generations
+          setTimeout(generateNextLevel, 10);
+        } else {
+          // Add billboard impostor at extreme distance
+          const billboardParams = { ...treeParams, useBillboard: true, lodLevel: 5 };
+          const billboardGen = new TreeGenerator(billboardParams);
+          const billboard = billboardGen.generate();
+          lodGroup.addLevel(billboard, distances[4] + 100);
+          
+          // Update stats with highest LOD poly count
+          if (lodLevels.length > 0) {
+            const generator = new TreeGenerator({ ...treeParams, lodLevel: 0 });
+            generator.generate();
+            document.getElementById('polyCount').textContent = generator.polyCount.toLocaleString() + ' (LOD 0)';
+          }
+        }
+      }
+      
+      // Add LOD group to scene immediately
+      scene.add(lodGroup);
+      
+      // Start generating levels
+      generateNextLevel();
+    }
+    
+    function removeLODSystem() {
+      if (lodGroup) {
+        scene.remove(lodGroup);
+        lodLevels.forEach(lodTree => {
+          lodTree.traverse((child) => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(mat => mat.dispose());
+              } else {
+                child.material.dispose();
+              }
+            }
+          });
+        });
+        lodGroup = null;
+        lodLevels = [];
+      }
+    }
+    
+    function generateTree() {
+      // Remove LOD system if active
+      if (treeParams.enableLOD) {
+        removeLODSystem();
+      }
+      
+      // Remove old tree
+      if (tree) {
+        scene.remove(tree);
+        // Dispose of geometries and materials
+        tree.traverse((child) => {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach(mat => mat.dispose());
+            }
+          }
+        });
+      }
+
+      // Generate new tree
+      const generator = new TreeGenerator(treeParams);
+      tree = generator.generate();
+      
+      // Enable shadow casting for all meshes
+      tree.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      
+      scene.add(tree);
+
+      // Update polygon count
+      const lodSuffix = treeParams.enableLOD ? ' (LOD System Active)' : '';
+      document.getElementById('polyCount').textContent = generator.polyCount.toLocaleString() + lodSuffix;
+      
+      // Setup LOD system if enabled
+      if (treeParams.enableLOD) {
+        scene.remove(tree); // Remove single tree
+        setupLODSystem();
+      }
+    }
+    
+    // Export tree as GLTF
+    function exportTreeAsGLTF() {
+      if (!tree) return;
+      
+      // Clone tree and convert InstancedMesh to regular meshes for export compatibility
+      const exportGroup = new THREE.Group();
+      
+      tree.traverse((child) => {
+        if (child.isMesh && !child.isInstancedMesh) {
+          // Regular mesh - clone directly
+          const clonedMesh = child.clone();
+          clonedMesh.position.copy(child.position);
+          clonedMesh.rotation.copy(child.rotation);
+          clonedMesh.scale.copy(child.scale);
+          exportGroup.add(clonedMesh);
+        } else if (child.isInstancedMesh) {
+          // InstancedMesh - convert to individual meshes
+          const matrix = new THREE.Matrix4();
+          const color = new THREE.Color();
+          
+          for (let i = 0; i < child.count; i++) {
+            child.getMatrixAt(i, matrix);
+            
+            const mesh = new THREE.Mesh(child.geometry.clone(), child.material.clone());
+            mesh.applyMatrix4(matrix);
+            
+            // Apply instance color if available
+            if (child.instanceColor) {
+              child.getColorAt(i, color);
+              mesh.material.color.copy(color);
+            }
+            
+            exportGroup.add(mesh);
+          }
+        }
+      });
+      
+      const exporter = new GLTFExporter();
+      exporter.parse(
+        exportGroup,
+        function(gltf) {
+          const output = JSON.stringify(gltf, null, 2);
+          const blob = new Blob([output], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `tree_${Date.now()}.gltf`;
+          link.click();
+          URL.revokeObjectURL(url);
+          
+          // Clean up cloned materials and geometries
+          exportGroup.traverse((child) => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+          });
+        },
+        function(error) {
+          console.error('Export failed:', error);
+        },
+        { binary: false }
+      );
+    }
+    
+    // Take screenshot
+    function takeScreenshot() {
+      // Render current frame
+      renderer.render(scene, camera);
+      
+      // For WebGPU, we need to read pixels differently
+      renderer.domElement.toBlob((blob) => {
+        const link = document.createElement('a');
+        link.download = `tree_screenshot_${Date.now()}.png`;
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        URL.revokeObjectURL(link.href);
+      });
+    }
+    
+    // Save preset to localStorage
+    function saveCurrentPreset() {
+      const preset = {
+        height: treeParams.height,
+        branchCount: treeParams.branchCount,
+        maxDepth: treeParams.maxDepth,
+        minAngle: treeParams.minAngle,
+        maxAngle: treeParams.maxAngle,
+        thicknessRatio: treeParams.thicknessRatio,
+        leafDensity: treeParams.leafDensity,
+        leafColor: treeParams.leafColor,
+        seed: treeParams.seed,
+        showRoots: treeParams.showRoots,
+        showLeaves: treeParams.showLeaves,
+        rootCount: treeParams.rootCount,
+        showFlowers: treeParams.showFlowers,
+        flowerDensity: treeParams.flowerDensity,
+        flowerColor: treeParams.flowerColor,
+        flowerSize: treeParams.flowerSize,
+        showFruits: treeParams.showFruits,
+        fruitDensity: treeParams.fruitDensity,
+        fruitColor: treeParams.fruitColor,
+        fruitSize: treeParams.fruitSize,
+        barkType: treeParams.barkType,
+        barkRoughness: treeParams.barkRoughness,
+        barkColor: treeParams.barkColor,
+        barkScale: treeParams.barkScale,
+        barkDepth: treeParams.barkDepth
+      };
+      
+      localStorage.setItem('treePreset', JSON.stringify(preset));
+      alert('Preset saved successfully!');
+    }
+    
+    // Load preset from localStorage
+    function loadSavedPreset() {
+      const saved = localStorage.getItem('treePreset');
+      if (!saved) {
+        alert('No saved preset found!');
+        return;
+      }
+      
+      const preset = JSON.parse(saved);
+      Object.assign(treeParams, preset);
+      updateGUI();
+      generateTree();
+      alert('Preset loaded successfully!');
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Update controls
+      controls.update();
+      
+      // Update LOD every frame for smooth transitions
+      if (lodGroup && treeParams.enableLOD) {
+        lodGroup.update(camera);
+      }
+      
+      // Apply wind animation
+      if (tree && treeParams.windEnabled) {
+        const time = Date.now() * 0.001 * treeParams.windSpeed;
+        
+        tree.traverse((child) => {
+          if (child.isMesh && child.geometry.attributes.windInfluence) {
+            const positions = child.geometry.attributes.position;
+            const originalPositions = child.geometry.userData.originalPositions;
+            
+            // Store original positions on first run
+            if (!originalPositions) {
+              child.geometry.userData.originalPositions = new Float32Array(positions.array);
+            } else {
+              const windInfluence = child.geometry.attributes.windInfluence;
+              
+              for (let i = 0; i < positions.count; i++) {
+                const influence = windInfluence.array[i] * treeParams.windStrength;
+                const offset = Math.sin(time + i * 0.1) * influence * 0.3;
+                
+                positions.array[i * 3] = originalPositions[i * 3] + offset;
+                positions.array[i * 3 + 2] = originalPositions[i * 3 + 2] + offset * 0.5;
+              }
+              
+              positions.needsUpdate = true;
+            }
+          }
+          
+          // Animate leaves
+          if (child.isInstancedMesh && child.geometry.type === 'PlaneGeometry') {
+            child.rotation.y = Math.sin(time * 0.5) * 0.1;
+          }
+        });
+      }
+
+      // Calculate FPS
+      frameCount++;
+      const currentTime = Date.now();
+      if (currentTime - lastTime >= 1000) {
+        document.getElementById('fps').textContent = frameCount;
+        frameCount = 0;
+        lastTime = currentTime;
+      }
+      
+      // Update camera position display
+      document.getElementById('camPos').textContent = 
+        `${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)}`;
+
+      // Render scene
+      renderer.render(scene, camera);
+    }
+
+    // Start application
+    init();
+  </script>
+</body>
+</html>

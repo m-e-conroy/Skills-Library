@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Procedural Chronos-Isle</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #1a1a2e; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // Simplex Noise Implementation
+    class SimplexNoise {
+      constructor() {
+        this.grad3 = [[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],[0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]];
+        this.p = [];
+        for(let i=0; i<256; i++) this.p[i] = Math.floor(Math.random()*256);
+        this.perm = new Array(512);
+        this.gradP = new Array(512);
+        for(let i=0; i<512; i++) {
+          this.perm[i] = this.p[i & 255];
+          this.gradP[i] = this.grad3[this.perm[i] % 12];
+        }
+      }
+      dot(g, x, y) { return g[0]*x + g[1]*y; }
+      noise(xin, yin) {
+        let n0, n1, n2;
+        const F2 = 0.5*(Math.sqrt(3.0)-1.0);
+        const s = (xin+yin)*F2;
+        const i = Math.floor(xin+s);
+        const j = Math.floor(yin+s);
+        const G2 = (3.0-Math.sqrt(3.0))/6.0;
+        const t = (i+j)*G2;
+        const X0 = i-t, Y0 = j-t;
+        const x0 = xin-X0, y0 = yin-Y0;
+        const i1 = x0>y0 ? 1 : 0;
+        const j1 = x0>y0 ? 0 : 1;
+        const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2;
+        const x2 = x0 - 1.0 + 2.0 * G2, y2 = y0 - 1.0 + 2.0 * G2;
+        const ii = i & 255, jj = j & 255;
+        const gi0 = this.gradP[ii+this.perm[jj]];
+        const gi1 = this.gradP[ii+i1+this.perm[jj+j1]];
+        const gi2 = this.gradP[ii+1+this.perm[jj+1]];
+        let t0 = 0.5 - x0*x0-y0*y0;
+        if(t0<0) n0 = 0.0; else { t0 *= t0; n0 = t0 * t0 * this.dot(gi0, x0, y0); }
+        let t1 = 0.5 - x1*x1-y1*y1;
+        if(t1<0) n1 = 0.0; else { t1 *= t1; n1 = t1 * t1 * this.dot(gi1, x1, y1); }
+        let t2 = 0.5 - x2*x2-y2*y2;
+        if(t2<0) n2 = 0.0; else { t2 *= t2; n2 = t2 * t2 * this.dot(gi2, x2, y2); }
+        return 70.0 * (n0 + n1 + n2);
+      }
+    }
+
+    // Scene Setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb); // Sky blue background
+    scene.fog = new THREE.Fog(0x87ceeb, 10, 150);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(15, 10, 15);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    // Lights
+    const sun = new THREE.DirectionalLight(0xffffff, 1);
+    sun.position.set(20, 30, 10);
+    sun.castShadow = true;
+    sun.shadow.camera.left = -30;
+    sun.shadow.camera.right = 30;
+    sun.shadow.camera.top = 30;
+    sun.shadow.camera.bottom = -30;
+    sun.shadow.mapSize.width = 2048;
+    sun.shadow.mapSize.height = 2048;
+    scene.add(sun);
+    const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x6b4423, 0.6);
+    scene.add(hemiLight);
+
+    // Island Group
+    const islandGroup = new THREE.Group();
+    scene.add(islandGroup);
+
+    // Terrain Generation
+    const noise = new SimplexNoise();
+    const size = 50, segments = 100;
+    const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+    geometry.rotateX(-Math.PI / 2);
+    const positions = geometry.attributes.position.array;
+    const colors = [];
+    const maxRadius = size * 0.4; // Island radius
+    
+    for(let i = 0; i < positions.length; i += 3) {
+      const x = positions[i], z = positions[i + 2];
+      
+      // Calculate distance from center
+      const distFromCenter = Math.sqrt(x * x + z * z);
+      
+      // Create irregular island shape using noise
+      const shapeNoise = noise.noise(x * 0.08, z * 0.08) * 0.3 + 
+                         noise.noise(x * 0.15, z * 0.15) * 0.15;
+      const adjustedRadius = maxRadius * (1 + shapeNoise);
+      
+      // Smooth falloff at edges (beach effect)
+      const edgeFalloff = Math.max(0, 1 - (distFromCenter / adjustedRadius));
+      const smoothFalloff = edgeFalloff * edgeFalloff * (3 - 2 * edgeFalloff); // Smoothstep
+      
+      // Generate terrain height with multiple noise octaves
+      const baseHeight = noise.noise(x * 0.1, z * 0.1) * 5 + 
+                         noise.noise(x * 0.05, z * 0.05) * 3 +
+                         noise.noise(x * 0.2, z * 0.2) * 1;
+      
+      // Apply falloff to create beach edges
+      const height = baseHeight * smoothFalloff;
+      
+      // Make outer edges go below water to hide square plane
+      const edgeDist = Math.max(Math.abs(x), Math.abs(z));
+      const edgeFade = smoothstep(size * 0.25, size * 0.5, edgeDist);
+      const finalHeight = height - edgeFade * edgeFade * 8.0; // Deep dip below water level
+      
+      positions[i + 1] = finalHeight;
+      
+      // Helper smoothstep function (defined inline for terrain generation)
+      function smoothstep(edge0, edge1, x) {
+        const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+        return t * t * (3 - 2 * t);
+      }
+      
+      const h = positions[i + 1];
+      // Color based on height: sand -> grass -> stone/snow
+      if(h < 0.3) colors.push(0.76, 0.7, 0.5); // Sandy beach
+      else if(h < 1) colors.push(0.3, 0.3, 0.3); // Rocky shore
+      else if(h < 3) colors.push(0.2, 0.6, 0.2); // Grass
+      else colors.push(0.9, 0.9, 0.9); // Mountain peaks
+    }
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geometry.computeVertexNormals();
+    const material = new THREE.MeshStandardMaterial({ vertexColors: true });
+    const island = new THREE.Mesh(geometry, material);
+    island.castShadow = true;
+    island.receiveShadow = true;
+    islandGroup.add(island);
+
+    // Water
+    const waterGeometry = new THREE.CircleGeometry(100, 64); // Expanded to fill viewport
+    const waterMaterial = new THREE.ShaderMaterial({
+      uniforms: { 
+        time: { value: 0 },
+        sunPosition: { value: new THREE.Vector3(20, 30, 10) }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vWorldPos;
+        varying vec3 vNormal;
+        uniform float time;
+        
+        // Simple noise function for waves
+        float noise(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+        
+        void main() {
+          vUv = uv;
+          
+          // Calculate wave displacement
+          vec3 pos = position;
+          float wave1 = sin(pos.x * 0.5 + time) * 0.3;
+          float wave2 = cos(pos.y * 0.5 + time * 0.8) * 0.3;
+          float wave3 = sin((pos.x + pos.y) * 0.3 + time * 1.2) * 0.15;
+          pos.z += wave1 + wave2 + wave3;
+          
+          // Calculate world position
+          vec4 worldPos = modelMatrix * vec4(pos, 1.0);
+          vWorldPos = worldPos.xyz;
+          
+          // Calculate normal based on wave derivatives for better lighting
+          float delta = 0.1;
+          float dx = (sin((pos.x + delta) * 0.5 + time) * 0.3 + 
+                     sin(((pos.x + delta) + pos.y) * 0.3 + time * 1.2) * 0.15) - 
+                    (wave1 + wave3);
+          float dy = (cos((pos.y + delta) * 0.5 + time * 0.8) * 0.3 + 
+                     sin((pos.x + (pos.y + delta)) * 0.3 + time * 1.2) * 0.15) - 
+                    (wave2 + wave3);
+          
+          vNormal = normalize(vec3(-dx * 3.0 / delta, 1.0, -dy * 3.0 / delta));
+          
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
+        }
+      `,
+      fragmentShader: `
+        varying vec2 vUv;
+        varying vec3 vWorldPos;
+        varying vec3 vNormal;
+        uniform float time;
+        uniform vec3 sunPosition;
+        
+        // Procedural noise for foam
+        float noise(vec2 p) {
+          return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+        
+        float fbm(vec2 p) {
+          float value = 0.0;
+          float amplitude = 0.5;
+          for(int i = 0; i < 4; i++) {
+            value += amplitude * noise(p);
+            p *= 2.0;
+            amplitude *= 0.5;
+          }
+          return value;
+        }
+        
+        void main() {
+          // Colors
+          vec3 shallowColor = vec3(0.3, 0.8, 0.85); // Bright turquoise
+          vec3 deepColor = vec3(0.1, 0.2, 0.5);    // Deep blue
+          vec3 skyColor = vec3(0.53, 0.81, 0.92);  // Sky reflection
+          vec3 foamColor = vec3(0.95, 0.95, 1.0);  // White foam
+          
+          // Calculate distance from center (approximate depth/shoreline)
+          float distFromCenter = length(vWorldPos.xz);
+          
+          // Depth-based color and transparency (near island = shallow, far = deep)
+          float depth = smoothstep(12.0, 35.0, distFromCenter);
+          vec3 waterColor = mix(shallowColor, deepColor, depth);
+          float baseAlpha = mix(0.7, 0.9, depth); // Increased opacity to hide terrain
+          
+          // View direction and Fresnel effect
+          vec3 viewDir = normalize(cameraPosition - vWorldPos);
+          float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 3.0);
+          
+          // Mix water color with sky reflection based on Fresnel (reduced strength)
+          waterColor = mix(waterColor, skyColor, fresnel * 0.3);
+          
+          // Lighting - sun direction
+          vec3 sunDir = normalize(sunPosition - vWorldPos);
+          
+          // Diffuse lighting
+          float diffuse = max(dot(vNormal, sunDir), 0.0);
+          
+          // Specular lighting (sun sparkles on waves)
+          vec3 reflectDir = reflect(-sunDir, vNormal);
+          float specular = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+          
+          // Apply lighting
+          waterColor += vec3(diffuse * 0.3);
+          waterColor += vec3(specular * 0.8); // Bright sun sparkles
+          
+          // Foam at shoreline (appears near island edges)
+          // Create a wider, more visible foam zone
+          float shoreZone = 1.0 - smoothstep(8.0, 20.0, distFromCenter);
+          
+          // Multiple layers of foam for better visibility
+          float foamNoise1 = fbm(vWorldPos.xz * 2.5 + time * 0.5);
+          float foamNoise2 = fbm(vWorldPos.xz * 5.0 - time * 0.3);
+          float combinedFoam = (foamNoise1 + foamNoise2) * 0.5;
+          
+          // Create foam pattern with lower threshold
+          float foamPattern = smoothstep(0.2, 0.6, combinedFoam);
+          
+          // Strong foam visibility near shore
+          float foamMask = shoreZone * foamPattern * 2.0;
+          foamMask = clamp(foamMask, 0.0, 1.0);
+          
+          // Mix in bright white foam
+          waterColor = mix(waterColor, foamColor, foamMask * 0.9);
+          float alpha = mix(baseAlpha, 1.0, foamMask * 0.3);
+          
+          gl_FragColor = vec4(waterColor, alpha);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+    const water = new THREE.Mesh(waterGeometry, waterMaterial);
+    water.rotation.x = -Math.PI / 2;
+    water.position.y = 0.2; // Water level - terrain below this appears submerged
+    islandGroup.add(water);
+
+    // Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // Raycaster
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const trees = [];
+
+    function createTree(x, y, z) {
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.2, 0.3, 2, 8),
+        new THREE.MeshStandardMaterial({ color: 0x4a2511 })
+      );
+      trunk.position.y = 1;
+      trunk.castShadow = true;
+      const top = new THREE.Mesh(
+        new THREE.ConeGeometry(1, 2, 8),
+        new THREE.MeshStandardMaterial({ color: 0x2d5016 })
+      );
+      top.position.y = 2.5;
+      top.castShadow = true;
+      tree.add(trunk, top);
+      tree.position.set(x, y, z);
+      tree.scale.set(0, 0, 0);
+      islandGroup.add(tree);
+      trees.push({ mesh: tree, startTime: Date.now() });
+    }
+
+    window.addEventListener('click', (event) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObject(island);
+      if(intersects.length > 0) {
+        const point = intersects[0].point;
+        createTree(point.x, point.y, point.z);
+      }
+    });
+
+    // Animation
+    function animate() {
+      requestAnimationFrame(animate);
+      const time = Date.now() * 0.001;
+      islandGroup.position.y = Math.sin(time * 0.5) * 0.5;
+      
+      // Update water shader uniforms
+      waterMaterial.uniforms.time.value = time;
+      
+      trees.forEach(({ mesh, startTime }) => {
+        const elapsed = Date.now() - startTime;
+        if(elapsed < 500) {
+          const scale = Math.min(1, elapsed / 500);
+          mesh.scale.set(scale, scale, scale);
+        }
+      });
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
