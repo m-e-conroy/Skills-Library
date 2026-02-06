@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volumetric Fire - Ray Marched</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #000;
+      color: #fff;
+      display: flex;
+      overflow: hidden;
+    }
+
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      background: #000;
+    }
+
+    #canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .controls-panel {
+      width: 320px;
+      background: rgba(0, 0, 0, 0.96);
+      border-left: 1px solid rgba(255, 100, 0, 0.3);
+      padding: 18px;
+      overflow-y: auto;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
+      flex-shrink: 0;
+    }
+
+    .controls-panel h2 {
+      font-size: 15px;
+      margin-bottom: 16px;
+      color: #ff6400;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 600;
+    }
+
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .preset-btn {
+      padding: 8px;
+      background: linear-gradient(135deg, rgba(255, 100, 0, 0.2), rgba(255, 50, 0, 0.2));
+      color: #ff9900;
+      border: 1px solid rgba(255, 100, 0, 0.4);
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+    }
+
+    .preset-btn:hover {
+      background: linear-gradient(135deg, rgba(255, 100, 0, 0.4), rgba(255, 50, 0, 0.4));
+      border-color: rgba(255, 100, 0, 0.6);
+    }
+
+    .preset-btn.active {
+      background: linear-gradient(135deg, #ff6400, #ff3300);
+      color: white;
+      border-color: #ff6400;
+    }
+
+    .section-title {
+      font-size: 10px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 14px 0 8px 0;
+      font-weight: 600;
+    }
+
+    .control-group {
+      margin-bottom: 12px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 10px;
+      color: #aaa;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .control-group input[type="range"] {
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #ff3300, #ffaa00);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .control-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ffaa00;
+      cursor: pointer;
+      box-shadow: 0 0 4px rgba(255, 170, 0, 0.8);
+      border: 1px solid #fff;
+    }
+
+    .control-group input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ffaa00;
+      cursor: pointer;
+      box-shadow: 0 0 4px rgba(255, 170, 0, 0.8);
+      border: 1px solid #fff;
+    }
+
+    .value-display {
+      font-size: 10px;
+      color: #ff9900;
+      margin-top: 2px;
+      font-family: 'Courier New', monospace;
+      text-align: right;
+    }
+
+    .separator {
+      height: 1px;
+      background: rgba(255, 100, 0, 0.15);
+      margin: 14px 0;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    button {
+      flex: 1;
+      padding: 8px;
+      background: linear-gradient(135deg, #ff6400, #ff3300);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 10px rgba(255, 100, 0, 0.3);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 14px rgba(255, 100, 0, 0.5);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .info-text {
+      font-size: 9px;
+      color: #555;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 100, 0, 0.1);
+      line-height: 1.4;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div class="controls-panel">
+    <h2>🔥 Volumetric Fire</h2>
+
+    <div class="preset-buttons">
+      <button class="preset-btn" data-preset="candle">🕯️ Candle</button>
+      <button class="preset-btn" data-preset="torch">🔦 Torch</button>
+      <button class="preset-btn active" data-preset="campfire">🏕️ Campfire</button>
+      <button class="preset-btn" data-preset="bonfire">🔥 Bonfire</button>
+      <button class="preset-btn" data-preset="forestfire">🌲 Forest Fire</button>
+    </div>
+
+    <div class="section-title">Shape</div>
+
+    <div class="control-group">
+      <label>Width</label>
+      <input type="range" id="width" min="0.02" max="2.0" step="0.02" value="0.35">
+      <div class="value-display" id="widthValue">0.35</div>
+    </div>
+
+    <div class="control-group">
+      <label>Height</label>
+      <input type="range" id="height" min="0.05" max="1.5" step="0.05" value="0.5">
+      <div class="value-display" id="heightValue">0.5</div>
+    </div>
+
+    <div class="control-group">
+      <label>Base Roundness</label>
+      <input type="range" id="baseRoundness" min="0.0" max="1.0" step="0.05" value="0.2">
+      <div class="value-display" id="baseRoundnessValue">0.20</div>
+    </div>
+
+    <div class="section-title">Physics</div>
+
+    <div class="control-group">
+      <label>Temperature (K)</label>
+      <input type="range" id="baseTemp" min="800" max="2200" step="50" value="1400">
+      <div class="value-display" id="baseTempValue">1400</div>
+    </div>
+
+    <div class="control-group">
+      <label>Cooling Rate</label>
+      <input type="range" id="coolingGamma" min="0.3" max="3.0" step="0.1" value="1.0">
+      <div class="value-display" id="coolingGammaValue">1.0</div>
+    </div>
+
+    <div class="control-group">
+      <label>Fuel Intensity</label>
+      <input type="range" id="fuelIntensity" min="0.1" max="3.0" step="0.1" value="1.0">
+      <div class="value-display" id="fuelIntensityValue">1.0</div>
+    </div>
+
+    <div class="control-group">
+      <label>Absorption</label>
+      <input type="range" id="absorption" min="0.5" max="12.0" step="0.5" value="4.0">
+      <div class="value-display" id="absorptionValue">4.0</div>
+    </div>
+
+    <div class="section-title">Motion</div>
+
+    <div class="control-group">
+      <label>Turbulence</label>
+      <input type="range" id="turbulence" min="0.1" max="5.0" step="0.1" value="1.5">
+      <div class="value-display" id="turbulenceValue">1.5</div>
+    </div>
+
+    <div class="control-group">
+      <label>Rise Speed</label>
+      <input type="range" id="riseSpeed" min="0.1" max="4.0" step="0.1" value="0.8">
+      <div class="value-display" id="riseSpeedValue">0.8</div>
+    </div>
+
+    <div class="control-group">
+      <label>Wind X</label>
+      <input type="range" id="windX" min="-2.0" max="2.0" step="0.1" value="0.3">
+      <div class="value-display" id="windXValue">0.3</div>
+    </div>
+
+    <div class="control-group">
+      <label>Wind Z</label>
+      <input type="range" id="windZ" min="-1.0" max="1.0" step="0.1" value="0.0">
+      <div class="value-display" id="windZValue">0.0</div>
+    </div>
+
+    <div class="control-group">
+      <label>Flicker Speed</label>
+      <input type="range" id="flickerSpeed" min="0.2" max="4.0" step="0.1" value="1.0">
+      <div class="value-display" id="flickerSpeedValue">1.0</div>
+    </div>
+
+    <div class="section-title">Quality</div>
+
+    <div class="control-group">
+      <label>Ray Steps</label>
+      <input type="range" id="raySteps" min="16" max="128" step="4" value="64">
+      <div class="value-display" id="rayStepsValue">64</div>
+    </div>
+
+    <div class="control-group">
+      <label>Noise Octaves</label>
+      <input type="range" id="noiseOctaves" min="2" max="8" step="1" value="6">
+      <div class="value-display" id="noiseOctavesValue">6</div>
+    </div>
+
+    <div class="control-group">
+      <label>Brightness</label>
+      <input type="range" id="brightness" min="0.3" max="3.0" step="0.1" value="1.0">
+      <div class="value-display" id="brightnessValue">1.0</div>
+    </div>
+
+    <div class="section-title">Colors</div>
+
+    <div class="control-group">
+      <label>Color Mode</label>
+      <select id="colorMode" style="width:100%;padding:4px;background:#1a1a1a;color:#ff9900;border:1px solid rgba(255,100,0,0.4);border-radius:4px;font-size:10px;">
+        <option value="0">🔬 Blackbody (Physical)</option>
+        <option value="1">🎨 Custom Colors</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label for="colorMix">Color Mix</label>
+      <input type="range" id="colorMix" min="0.0" max="1.0" step="0.05" value="0.0">
+      <div class="value-display" id="colorMixValue">0.00</div>
+    </div>
+
+    <div class="control-group">
+      <label>Core Color (Hottest)</label>
+      <input type="color" id="coreColor" value="#ffff99" style="width:100%;height:28px;border:1px solid rgba(255,100,0,0.4);border-radius:4px;cursor:pointer;">
+    </div>
+
+    <div class="control-group">
+      <label>Mid Color</label>
+      <input type="color" id="midColor" value="#ff9933" style="width:100%;height:28px;border:1px solid rgba(255,100,0,0.4);border-radius:4px;cursor:pointer;">
+    </div>
+
+    <div class="control-group">
+      <label>Edge Color (Coolest)</label>
+      <input type="color" id="edgeColor" value="#cc3300" style="width:100%;height:28px;border:1px solid rgba(255,100,0,0.4);border-radius:4px;cursor:pointer;">
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="button-group">
+      <button id="resetBtn">Reset</button>
+      <button id="pauseBtn">Pause</button>
+    </div>
+
+    <div class="info-text">
+      Volumetric fire simulation using ray marching with physically-based blackbody radiation, Beer-Lambert absorption, and 3D turbulent noise fields.
+    </div>
+  </div>
+
+  <script>
+    (async () => {
+      const canvas = document.getElementById('canvas');
+      
+      function resizeCanvas() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width * window.devicePixelRatio;
+        canvas.height = rect.height * window.devicePixelRatio;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      if (!navigator.gpu) {
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#000;color:#fff;font-size:18px;text-align:center;padding:20px;">WebGPU not supported.<br>Try Chrome 113+, Edge 113+, or Firefox Nightly.</div>';
+        throw new Error('WebGPU not available');
+      }
+
+      const adapter = await navigator.gpu.requestAdapter();
+      const device = await adapter.requestDevice();
+      const queue = device.queue;
+      const format = navigator.gpu.getPreferredCanvasFormat();
+      const ctx = canvas.getContext('webgpu');
+      ctx.configure({ device, format });
+
+      // Helper to parse hex color to RGB (0-1)
+      function parseColor(hex) {
+        const r = parseInt(hex.slice(1, 3), 16) / 255;
+        const g = parseInt(hex.slice(3, 5), 16) / 255;
+        const b = parseInt(hex.slice(5, 7), 16) / 255;
+        return { r, g, b };
+      }
+
+      // Fire presets
+      const presets = {
+        candle: {
+          width: 0.05, height: 0.15, baseTemp: 1800, coolingGamma: 2.0,
+          fuelIntensity: 1.5, absorption: 8.0, turbulence: 0.3, riseSpeed: 0.3,
+          windX: 0.0, windZ: 0.0, flickerSpeed: 0.8, raySteps: 32, noiseOctaves: 5, brightness: 1.2,
+          colorMode: 0, colorMix: 0.0, baseRoundness: 0.8, coreColor: '#ffff99', midColor: '#ff9933', edgeColor: '#cc3300'
+        },
+        torch: {
+          width: 0.12, height: 0.3, baseTemp: 1600, coolingGamma: 1.5,
+          fuelIntensity: 1.2, absorption: 6.0, turbulence: 0.8, riseSpeed: 0.5,
+          windX: 0.1, windZ: 0.0, flickerSpeed: 1.2, raySteps: 48, noiseOctaves: 5, brightness: 1.1,
+          colorMode: 0, colorMix: 0.0, baseRoundness: 0.6, coreColor: '#ffff99', midColor: '#ff9933', edgeColor: '#cc3300'
+        },
+        campfire: {
+          width: 0.35, height: 0.5, baseTemp: 1400, coolingGamma: 1.0,
+          fuelIntensity: 1.0, absorption: 4.0, turbulence: 1.5, riseSpeed: 0.8,
+          windX: 0.3, windZ: 0.0, flickerSpeed: 1.0, raySteps: 64, noiseOctaves: 6, brightness: 1.0,
+          colorMode: 0, colorMix: 0.0, baseRoundness: 0.2, coreColor: '#ffff99', midColor: '#ff9933', edgeColor: '#cc3300'
+        },
+        bonfire: {
+          width: 0.6, height: 0.8, baseTemp: 1500, coolingGamma: 0.8,
+          fuelIntensity: 0.8, absorption: 3.0, turbulence: 2.5, riseSpeed: 1.2,
+          windX: 0.5, windZ: 0.0, flickerSpeed: 1.5, raySteps: 64, noiseOctaves: 6, brightness: 0.9,
+          colorMode: 0, colorMix: 0.0, baseRoundness: 0.0, coreColor: '#ffff99', midColor: '#ff9933', edgeColor: '#cc3300'
+        },
+        forestfire: {
+          width: 1.5, height: 1.2, baseTemp: 1300, coolingGamma: 0.5,
+          fuelIntensity: 0.5, absorption: 1.5, turbulence: 4.0, riseSpeed: 2.0,
+          windX: 1.0, windZ: 0.0, flickerSpeed: 2.0, raySteps: 48, noiseOctaves: 5, brightness: 0.7,
+          colorMode: 0, colorMix: 0.0, baseRoundness: 0.0, coreColor: '#ffff99', midColor: '#ff9933', edgeColor: '#cc3300'
+        }
+      };
+
+      let params = { ...presets.campfire };
+      let currentPreset = 'campfire';
+
+      // UI Controls
+      const controls = {
+        width: document.getElementById('width'),
+        height: document.getElementById('height'),
+        baseRoundness: document.getElementById('baseRoundness'),
+        baseTemp: document.getElementById('baseTemp'),
+        coolingGamma: document.getElementById('coolingGamma'),
+        fuelIntensity: document.getElementById('fuelIntensity'),
+        absorption: document.getElementById('absorption'),
+        turbulence: document.getElementById('turbulence'),
+        riseSpeed: document.getElementById('riseSpeed'),
+        windX: document.getElementById('windX'),
+        windZ: document.getElementById('windZ'),
+        flickerSpeed: document.getElementById('flickerSpeed'),
+        raySteps: document.getElementById('raySteps'),
+        noiseOctaves: document.getElementById('noiseOctaves'),
+        brightness: document.getElementById('brightness'),
+        colorMode: document.getElementById('colorMode'),
+        colorMix: document.getElementById('colorMix'),
+        coreColor: document.getElementById('coreColor'),
+        midColor: document.getElementById('midColor'),
+        edgeColor: document.getElementById('edgeColor'),
+      };
+
+      function updateUI() {
+        Object.keys(controls).forEach(key => {
+          if (key.includes('Color') && key !== 'colorMode' && key !== 'colorMix') {
+            controls[key].value = params[key];
+          } else {
+            controls[key].value = params[key];
+            const valueEl = document.getElementById(key + 'Value');
+            if (valueEl) {
+              const decimals = ['raySteps', 'noiseOctaves', 'baseTemp', 'colorMode'].includes(key) ? 0 : 2;
+              valueEl.textContent = params[key].toFixed(decimals);
+            }
+          }
+        });
+      }
+
+      function applyPreset(presetName) {
+        params = { ...presets[presetName] };
+        currentPreset = presetName;
+        updateUI();
+        
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.preset === presetName);
+        });
+      }
+
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+      });
+
+      Object.keys(controls).forEach(key => {
+        controls[key].addEventListener('input', (e) => {
+          if (key.includes('Color') && key !== 'colorMode' && key !== 'colorMix') {
+            // Color picker
+            params[key] = e.target.value;
+          } else {
+            const val = parseFloat(e.target.value);
+            params[key] = val;
+            const valueEl = document.getElementById(key + 'Value');
+            if (valueEl) {
+              const decimals = ['raySteps', 'noiseOctaves', 'baseTemp', 'colorMode'].includes(key) ? 0 : 2;
+              valueEl.textContent = val.toFixed(decimals);
+            }
+          }
+          
+          // When color mode changes, reset colorMix to 0 for clarity
+          if (key === 'colorMode') {
+            params.colorMix = 0.0;
+            controls.colorMix.value = 0.0;
+            document.getElementById('colorMixValue').textContent = '0.00';
+            updateColorMixLabel();
+          }
+        });
+      });
+      
+      // Update Color Mix label based on mode
+      function updateColorMixLabel() {
+        const label = document.querySelector('label[for="colorMix"]');
+        if (params.colorMode < 0.5) {
+          label.textContent = 'Custom Tint (Blackbody Base)';
+        } else {
+          label.textContent = 'Blackbody Mix (Custom Base)';
+        }
+      }
+      
+      // Initial label update
+      updateColorMixLabel();
+
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        applyPreset(currentPreset);
+      });
+
+      let isPaused = false;
+      document.getElementById('pauseBtn').addEventListener('click', () => {
+        isPaused = !isPaused;
+        document.getElementById('pauseBtn').textContent = isPaused ? 'Resume' : 'Pause';
+      });
+
+      const vertexShader = device.createShaderModule({
+        code: `
+          @vertex
+          fn main(@builtin(vertex_index) vid: u32) -> @builtin(position) vec4f {
+            var pos = array<vec2f, 6>(
+              vec2f(-1, -1), vec2f(1, -1), vec2f(1, 1),
+              vec2f(-1, -1), vec2f(1, 1), vec2f(-1, 1)
+            );
+            return vec4f(pos[vid], 0.0, 1.0);
+          }
+        `
+      });
+
+      const fragmentShader = device.createShaderModule({
+        code: `
+          struct FireParams {
+            width: f32,
+            height: f32,
+            turbulence: f32,
+            riseSpeed: f32,
+            
+            baseTemp: f32,
+            coolingGamma: f32,
+            fuelIntensity: f32,
+            absorptionCoeff: f32,
+            
+            windX: f32,
+            windZ: f32,
+            flickerSpeed: f32,
+            brightness: f32,
+            
+            raySteps: f32,
+            noiseOctaves: f32,
+            colorMode: f32,      // 0=blackbody, 1=custom
+            colorMix: f32,       // 0-1 blend factor
+            baseRoundness: f32,  // 0=flat, 1=fully rounded bottom
+            coreColorR: f32,     // Custom color for hottest core
+            coreColorG: f32,
+            coreColorB: f32,
+            _pad0: f32,
+            
+            midColorR: f32,      // Custom color for mid-temperature
+            midColorG: f32,
+            midColorB: f32,
+            _pad1: f32,
+            
+            edgeColorR: f32,     // Custom color for cooler edges
+            edgeColorG: f32,
+            edgeColorB: f32,
+            _pad2: f32,
+          }
+
+          @group(0) @binding(0) var<uniform> params: FireParams;
+          @group(0) @binding(1) var<uniform> time: f32;
+          @group(0) @binding(2) var<uniform> screenSize: vec2f;
+
+          // 3D hash function
+          fn hash3(p: vec3f) -> f32 {
+            let h = dot(p, vec3f(127.1, 311.7, 74.7));
+            return fract(sin(h) * 43758.5453123);
+          }
+
+          // 3D Perlin-like noise
+          fn noise3(p: vec3f) -> f32 {
+            let i = floor(p);
+            let f = fract(p);
+            
+            // Quintic interpolation
+            let u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+            
+            // Sample 8 corners of the cube
+            let n000 = hash3(i + vec3f(0.0, 0.0, 0.0));
+            let n100 = hash3(i + vec3f(1.0, 0.0, 0.0));
+            let n010 = hash3(i + vec3f(0.0, 1.0, 0.0));
+            let n110 = hash3(i + vec3f(1.0, 1.0, 0.0));
+            let n001 = hash3(i + vec3f(0.0, 0.0, 1.0));
+            let n101 = hash3(i + vec3f(1.0, 0.0, 1.0));
+            let n011 = hash3(i + vec3f(0.0, 1.0, 1.0));
+            let n111 = hash3(i + vec3f(1.0, 1.0, 1.0));
+            
+            // Trilinear interpolation
+            let nx00 = mix(n000, n100, u.x);
+            let nx10 = mix(n010, n110, u.x);
+            let nx01 = mix(n001, n101, u.x);
+            let nx11 = mix(n011, n111, u.x);
+            
+            let nxy0 = mix(nx00, nx10, u.y);
+            let nxy1 = mix(nx01, nx11, u.y);
+            
+            return mix(nxy0, nxy1, u.z);
+          }
+
+          // Fractional Brownian Motion in 3D with vertical bias
+          fn fbm3(p_in: vec3f, octaves: i32) -> f32 {
+            var value = 0.0;
+            var amplitude = 0.5;
+            var frequency = 1.0;
+            var maxValue = 0.0;
+            
+            for (var i = 0; i < octaves; i++) {
+              // Slight offset per octave instead of rotation to avoid tornado effect
+              let offset = vec3f(f32(i) * 0.7, f32(i) * 1.3, f32(i) * 0.5);
+              value += amplitude * noise3((p_in + offset) * frequency);
+              maxValue += amplitude;
+              amplitude *= 0.5;
+              frequency *= 2.0;
+            }
+            return value / maxValue;
+          }
+
+          // Blackbody radiation approximation (Kelvin to sRGB)
+          fn blackbody(T: f32) -> vec3f {
+            let temp = clamp(T / 100.0, 8.0, 65.0);
+            var r: f32;
+            var g: f32;
+            var b: f32;
+            
+            // Red channel
+            if (temp <= 66.0) {
+              r = 1.0;
+            } else {
+              r = 1.292936186 * pow(temp - 60.0, -0.1332047592);
+              r = clamp(r, 0.0, 1.0);
+            }
+            
+            // Green channel
+            if (temp <= 66.0) {
+              g = 0.39008157876901960784 * log(temp) - 0.63184144378862745098;
+              g = clamp(g, 0.0, 1.0);
+            } else {
+              g = 1.129890860895294118 * pow(temp - 60.0, -0.0755148492);
+              g = clamp(g, 0.0, 1.0);
+            }
+            
+            // Blue channel
+            if (temp >= 66.0) {
+              b = 1.0;
+            } else if (temp <= 19.0) {
+              b = 0.0;
+            } else {
+              b = 0.54320678911019607843 * log(temp - 10.0) - 1.19625408914;
+              b = clamp(b, 0.0, 1.0);
+            }
+            
+            return vec3f(r, g, b);
+          }
+
+          // Get emission color (hybrid blackbody + custom colors)
+          fn getEmissionColor(temperature: f32, density: f32, heightNorm: f32) -> vec3f {
+            // Blackbody color (physically-based)
+            let bbColor = blackbody(temperature);
+            
+            // Custom color gradient based on temperature/height
+            let coreColor = vec3f(params.coreColorR, params.coreColorG, params.coreColorB);
+            let midColor = vec3f(params.midColorR, params.midColorG, params.midColorB);
+            let edgeColor = vec3f(params.edgeColorR, params.edgeColorG, params.edgeColorB);
+            
+            // Blend between colors based on density and height
+            // Core (high density, low height) -> Mid (medium) -> Edge (low density, high height)
+            let tempFactor = clamp(density * (1.0 - heightNorm * 0.5), 0.0, 1.0);
+            
+            var customColor: vec3f;
+            if (tempFactor > 0.5) {
+              // Hot core to mid transition
+              let t = (tempFactor - 0.5) * 2.0;
+              customColor = mix(midColor, coreColor, t);
+            } else {
+              // Mid to cool edge transition
+              let t = tempFactor * 2.0;
+              customColor = mix(edgeColor, midColor, t);
+            }
+            
+            // Blend between blackbody and custom based on colorMode and colorMix
+            if (params.colorMode < 0.5) {
+              // Blackbody mode (colorMix still allows some custom blending)
+              return mix(bbColor, customColor, params.colorMix);
+            } else {
+              // Custom mode (colorMix controls how much blackbody to retain)
+              return mix(customColor, bbColor, params.colorMix);
+            }
+          }
+
+          // Sample density field at position p
+          fn sampleDensity(p: vec3f, t: f32) -> f32 {
+            // First check if we're in valid y range
+            if (p.y < 0.0 || p.y > params.height) {
+              return 0.0;
+            }
+            
+            let octaves = i32(params.noiseOctaves);
+            
+            // Height from 0 (bottom) to 1 (top)
+            let heightNorm = p.y / params.height;
+            
+            // Calculate radial distance early for base shaping
+            let radialDist = sqrt(p.x * p.x + p.z * p.z);
+            
+            // Rounded base: create a hemispherical bottom when baseRoundness > 0
+            var baseModifier = 1.0;
+            if (params.baseRoundness > 0.0 && heightNorm < 0.3) {
+              // Calculate how far we are from the base (0 = bottom, 0.3 = transition end)
+              let baseBlend = heightNorm / 0.3;
+              // Create spherical constraint at bottom
+              let baseRadius = params.width * 0.7;
+              let sphereY = sqrt(max(0.0, baseRadius * baseRadius - radialDist * radialDist));
+              let targetY = sphereY * params.baseRoundness;
+              // Reduce density if below the spherical surface
+              if (p.y < targetY) {
+                baseModifier = smoothstep(0.0, targetY * 0.5, p.y);
+              }
+              // Blend the effect smoothly
+              baseModifier = mix(baseModifier, 1.0, baseBlend);
+            }
+            
+            // Turbulent displacement - minimal to preserve flame shape
+            let turbFreq = 3.0;
+            let wind = vec3f(params.windX, 0.0, params.windZ);
+            let riseOffset = vec3f(0.0, t * params.flickerSpeed * 0.0004, 0.0);
+            
+            let noiseVal = fbm3(p * turbFreq + wind * t * 0.0002 - riseOffset, octaves);
+            
+            // Only displace horizontally, keep vertical axis clean
+            let dispAmount = params.turbulence * 0.08 * (1.0 - heightNorm * 0.5);
+            let dispX = (noiseVal - 0.5) * dispAmount;
+            let dispZ = (fbm3(p * turbFreq * 1.1 - riseOffset, octaves) - 0.5) * dispAmount;
+            
+            let pDisp = p + vec3f(dispX, 0.0, dispZ);
+            
+            // Calculate radial distance from center axis (after displacement)
+            let radialDistDisp = sqrt(pDisp.x * pDisp.x + pDisp.z * pDisp.z);
+            
+            // Flame width: WIDE at bottom (heightNorm=0), NARROW at top (heightNorm=1)
+            // Using 1.0 - heightNorm ensures width decreases as we go up
+            let widthAtHeight = params.width * pow(1.0 - heightNorm, 1.5);
+            
+            // Core flame shape - strong density in the center, fade at edges
+            var density = smoothstep(widthAtHeight, widthAtHeight * 0.3, radialDistDisp);
+            
+            // Stronger at bottom (more fuel), weaker at top
+            density *= 1.0 - heightNorm * 0.6;
+            
+            // Add detail with noise (fuel variation)
+            let detailFreq = 5.0;
+            let detailNoise = fbm3(p * detailFreq - riseOffset * 1.5, max(octaves - 1, 3));
+            density *= 0.5 + 0.5 * detailNoise;
+            
+            // Create flame wisps/tendrils at edges
+            let wispFreq = 8.0;
+            let wispNoise = fbm3(p * wispFreq - riseOffset * 2.0, max(octaves - 2, 2));
+            let wispContribution = smoothstep(0.35, 0.65, wispNoise) * 0.3;
+            
+            // Softer at top for pointed tips
+            let topSoftening = 1.0 - smoothstep(0.7, 0.95, heightNorm);
+            
+            return density * topSoftening * (1.0 + wispContribution) * baseModifier;
+          }
+
+          // Sample temperature field at position p
+          fn sampleTemperature(p: vec3f, density: f32) -> f32 {
+            let heightNorm = clamp(p.y / params.height, 0.0, 1.0);
+            let heightCooling = pow(1.0 - heightNorm, params.coolingGamma);
+            return params.baseTemp * density * heightCooling * params.fuelIntensity;
+          }
+
+          // Ray-AABB intersection
+          fn rayBoxIntersection(ro: vec3f, rd: vec3f, boxMin: vec3f, boxMax: vec3f) -> vec2f {
+            let invRd = 1.0 / rd;
+            let t0 = (boxMin - ro) * invRd;
+            let t1 = (boxMax - ro) * invRd;
+            let tmin = min(t0, t1);
+            let tmax = max(t0, t1);
+            let tNear = max(max(tmin.x, tmin.y), tmin.z);
+            let tFar = min(min(tmax.x, tmax.y), tmax.z);
+            return vec2f(tNear, tFar);
+          }
+
+          @fragment
+          fn main(@builtin(position) fragPos: vec4f) -> @location(0) vec4f {
+            var uv = (fragPos.xy / screenSize) * 2.0 - 1.0;
+            uv.y = -uv.y; // Flip Y so bottom of screen shows flame base
+            let aspect = screenSize.x / screenSize.y;
+            
+            // Camera setup (simple orthographic view) - centered
+            let rayOrigin = vec3f(uv.x * aspect * 0.8, uv.y * 0.8, -2.0);
+            let rayDir = normalize(vec3f(0.0, 0.0, 1.0));
+            
+            // Flame bounding box - generous margins to avoid visible edges
+            let boxMin = vec3f(-params.width * 3.0, -0.3, -params.width * 3.0);
+            let boxMax = vec3f(params.width * 3.0, params.height + 0.5, params.width * 3.0);
+            
+            let intersection = rayBoxIntersection(rayOrigin, rayDir, boxMin, boxMax);
+            let tNear = max(intersection.x, 0.0);
+            let tFar = intersection.y;
+            
+            if (tNear >= tFar) {
+              return vec4f(0.0, 0.0, 0.0, 1.0);
+            }
+            
+            // Ray marching
+            let numSteps = i32(params.raySteps);
+            let stepSize = (tFar - tNear) / f32(numSteps);
+            
+            var accumulatedColor = vec3f(0.0);
+            var transmittance = 1.0;
+            
+            let t = time * params.flickerSpeed;
+            
+            for (var step = 0; step < numSteps; step++) {
+              let dist = tNear + f32(step) * stepSize;
+              let samplePos = rayOrigin + rayDir * dist;
+              
+              // Sample fields
+              let density = sampleDensity(samplePos, t);
+              
+              if (density > 0.01) {
+                let temperature = sampleTemperature(samplePos, density);
+                let heightNorm = clamp(samplePos.y / params.height, 0.0, 1.0);
+                
+                // Emission using hybrid color system
+                let emission = getEmissionColor(temperature, density, heightNorm) * density * 2.5;
+                
+                // Absorption (Beer-Lambert)
+                let absorption = exp(-params.absorptionCoeff * density * stepSize);
+                
+                // Accumulate (front-to-back compositing)
+                accumulatedColor += transmittance * emission * stepSize;
+                transmittance *= absorption;
+                
+                // Early exit if nearly opaque
+                if (transmittance < 0.01) {
+                  break;
+                }
+              }
+            }
+            
+            // Tone mapping (Reinhard)
+            var finalColor = accumulatedColor * params.brightness;
+            finalColor = finalColor / (1.0 + finalColor);
+            
+            // Gamma correction
+            finalColor = pow(finalColor, vec3f(1.0 / 2.2));
+            
+            // Ambient glow at base
+            let glowDist = length(uv * vec2f(aspect, 1.0));
+            let baseGlow = exp(-glowDist * 3.0) * 0.08 * vec3f(1.0, 0.5, 0.2);
+            finalColor += baseGlow;
+            
+            return vec4f(finalColor, 1.0);
+          }
+        `
+      });
+
+      // Create buffers
+      const paramsBuffer = device.createBuffer({
+        size: 116, // 29 floats - includes baseRoundness and color parameters
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+
+      const timeBuffer = device.createBuffer({
+        size: 4,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+
+      const screenSizeBuffer = device.createBuffer({
+        size: 8,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+
+      // Create pipeline
+      const pipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex: { module: vertexShader, entryPoint: 'main' },
+        fragment: {
+          module: fragmentShader,
+          entryPoint: 'main',
+          targets: [{ format }],
+        },
+        primitive: { topology: 'triangle-list' },
+      });
+
+      const bindGroup = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: paramsBuffer } },
+          { binding: 1, resource: { buffer: timeBuffer } },
+          { binding: 2, resource: { buffer: screenSizeBuffer } },
+        ],
+      });
+
+      // Animation loop
+      let startTime = performance.now();
+      
+      function animate() {
+        if (!isPaused) {
+          const currentTime = performance.now() - startTime;
+
+          // Pack parameters into buffer (29 floats = 116 bytes)
+          const coreRGB = parseColor(params.coreColor);
+          const midRGB = parseColor(params.midColor);
+          const edgeRGB = parseColor(params.edgeColor);
+          
+          const paramsData = new Float32Array([
+            params.width, params.height, params.turbulence, params.riseSpeed,
+            params.baseTemp, params.coolingGamma, params.fuelIntensity, params.absorption,
+            params.windX, params.windZ, params.flickerSpeed, params.brightness,
+            params.raySteps, params.noiseOctaves, params.colorMode, params.colorMix,
+            params.baseRoundness, coreRGB.r, coreRGB.g, coreRGB.b,
+            midRGB.r, midRGB.g, midRGB.b, 0.0,
+            edgeRGB.r, edgeRGB.g, edgeRGB.b, 0.0,
+            0.0  // Final padding to reach 29 floats
+          ]);
+
+          queue.writeBuffer(paramsBuffer, 0, paramsData);
+          queue.writeBuffer(timeBuffer, 0, new Float32Array([currentTime]));
+          queue.writeBuffer(screenSizeBuffer, 0, new Float32Array([canvas.width, canvas.height]));
+        }
+
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginRenderPass({
+          colorAttachments: [{
+            view: ctx.getCurrentTexture().createView(),
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
+            loadOp: 'clear',
+            storeOp: 'store',
+          }],
+        });
+
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(0, bindGroup);
+        pass.draw(6);
+        pass.end();
+
+        queue.submit([encoder.finish()]);
+        requestAnimationFrame(animate);
+      }
+
+      // Check for reduced motion preference
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        isPaused = true;
+        document.getElementById('pauseBtn').textContent = 'Resume';
+      }
+
+      animate();
+    })();
+  </script>
+</body>
+</html>
