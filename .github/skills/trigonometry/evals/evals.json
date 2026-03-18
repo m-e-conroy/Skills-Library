@@ -1,0 +1,23 @@
+{
+  "skill_name": "trigonometry",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm building a solar system in p5.js. I have a sun at the centre and want 3 planets orbiting it at different speeds and distances. How do I position them each frame?",
+      "expected_output": "Uses Math.cos/sin pattern with a per-planet angle that increments each frame. Each planet has its own radius and speed. Positions are computed as cx + r * cos(angle), cy + r * sin(angle). Should mention phase offsets or separate angle accumulators per planet.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want a loading spinner that has 8 dots arranged in a circle. Each dot should be slightly faded based on its position, like a clock. Give me the code to place the dots and set their opacity.",
+      "expected_output": "Distributes 8 dots using angle = (i / 8) * 2 * PI, positions each with cos/sin. Opacity varies per dot based on index. Code is clean and runnable in canvas or SVG context.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I have a spaceship sprite in a canvas game. When the player moves the mouse, I want the ship to rotate so it's always pointing toward the cursor. How do I get the angle?",
+      "expected_output": "Uses Math.atan2(mouseY - shipY, mouseX - shipX) to compute the angle. Applies it with ctx.rotate() or stores it for drawing. Notes that atan2 takes y first then x.",
+      "files": []
+    }
+  ]
+}

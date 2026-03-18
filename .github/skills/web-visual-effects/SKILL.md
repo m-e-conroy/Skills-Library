@@ -1,35 +1,11 @@
 ---
 name: web-visual-effects
-description: Create stunning web visual effects and creative coding experiences using WebGL, WebGPU, shaders, and animation libraries. Use this skill when building GPU-accelerated graphics, scroll-driven animations, particle systems, post-processing effects, glassmorphism, parallax scrolling, or any hardware-accelerated visual experience for the web.
-allowed-tools: Read, Grep, Glob, Edit
+description: Create stunning web visual effects and creative coding experiences using WebGL, WebGPU, shaders, and animation libraries. Use this skill when building GPU-accelerated graphics, scroll-driven animations, particle systems, post-processing effects, glassmorphism, parallax scrolling, or any hardware-accelerated visual experience for the web. Also triggers on "visual effect", "shader", "WebGL", "GLSL", "fragment shader", "particle system", "scroll animation", "parallax", "glassmorphism", "GSAP animation", "post-processing", "bloom effect", "chromatic aberration", "film grain", "liquid distortion", "raymarching", "VFX.js", "PixiJS", "Lottie animation", "smooth scroll", "Lenis", "creative coding", "canvas animation", or any request to build a visually impressive GPU-accelerated web experience.
 ---
 
 # Web Visual Effects & Creative Coding
 
 Build high-performance, visually stunning web experiences using GPU-accelerated graphics, advanced animation techniques, and creative coding patterns. This skill covers everything from shader-based effects and particle systems to scroll-driven animations and modern UI visual styles.
-
-## Invocation
-- **Manual**: `/web-visual-effects [topic]`
-- **Automatic**: Triggered when requests involve "visual effect", "shader", "WebGL", "particle system", "scroll animation", "parallax", "glassmorphism", "GSAP animation", "post-processing", or "creative coding".
-- **Arguments**: Optional `$0` to focus on a specific technique (e.g., shader, scroll, particles).
-
-## When to Use This Skill
-
-- Creating WebGL or WebGPU-powered visual effects
-- Building scroll-driven animations and parallax experiences
-- Implementing shader effects (liquid distortion, grain, noise, glow)
-- Adding post-processing effects (bloom, chromatic aberration, vignette)
-- Creating particle systems and physics-based animations
-- Implementing glassmorphism, neumorphism, or other modern UI styles
-- Building interactive 3D scenes with React-Three-Fiber
-- Designing timeline-based motion sequences with GSAP or Theatre.js
-- Rendering After Effects animations with Lottie on the web
-- Optimizing visual performance across devices and GPUs
-
-## Prerequisites & Permissions
-- Standard workspace reading and editing tools.
-- No external build tools required for CDN-based setups.
-- Node/npm required only for framework projects (R3F, Vite, Next.js).
 
 ## Example Prompts
 
@@ -679,17 +655,63 @@ composer.addPass(film);
 | VFX.js GitHub | https://github.com/vfx-js/vfx |
 | VFX.js Examples | https://vfx-js.github.io/ |
 
----
+### Version & Compatibility Notes
 
-## Notes for Maintainers
-
-- **Spec watch**: The Web Animations API, Scroll Timeline API, and View Transitions API are actively evolving. Check browser support before recommending these for production.
-- **Three.js versioning**: Three.js has breaking changes between minor versions. Pin CDN imports to specific versions (e.g., `@0.170`) and note the version used.
-- **GSAP licensing**: GSAP core is free for most uses, but some plugins (MorphSVG, DrawSVG, SplitText) require a paid Club license. Always verify licensing before recommending premium plugins.
-- **WebGPU maturity**: WebGPU is stable in Chrome/Edge but still emerging in Firefox/Safari. Always include a WebGL fallback path when using WebGPU features.
-- **Performance baselines**: Test effects on mid-range Android devices (not just desktop/iPhone). The gap between high-end and mid-range GPUs is significant.
-- **Skill boundary**: For full 3D scenes and complex Three.js work, defer to the `threejs-3d-webgpu` skill. This skill covers visual effects and creative coding that may *use* Three.js but focuses on the effect, not the 3D pipeline.
+- **Evolving specs**: The Web Animations API, Scroll Timeline API, and View Transitions API are actively evolving — check browser support before recommending for production.
+- **Three.js versioning**: Three.js has breaking changes between minor versions. Pin CDN imports to specific versions (e.g., `@0.170`).
+- **GSAP licensing**: GSAP is now a Webflow product and all plugins (ScrollTrigger, ScrollSmoother, SplitText, MorphSVG, DrawSVG, Flip, Observer, InertiaPlugin) are free. Register plugins before use: `gsap.registerPlugin(ScrollTrigger)`.
+- **WebGPU maturity**: WebGPU is stable in Chrome/Edge but still emerging in Firefox/Safari. Always include a WebGL fallback when using WebGPU features.
 
 ---
 
-*Skill maintained by the Skills Library. Last updated 2026-02-06.*
+## Related Skills
+
+### threejs-3d-webgpu
+The Three.js 3D pipeline skill — scene graphs, cameras, geometries, materials, PBR lighting, model loading, and TSL/WebGPU compute. web-visual-effects often *uses* Three.js (post-processing, particles, shaders), but the full 3D scene workflow lives there.
+
+**Use threejs-3d-webgpu instead when:** the project is primarily a 3D scene with objects, cameras, and lighting rather than a screen-space visual effect layered on top of a web page.
+
+### gsap
+Professional JavaScript animation — tweens, timelines, Flip, Observer, SplitText, and MorphSVG. GSAP is the most-used animation library in this skill's recipes.
+
+**Use alongside this skill when:** the visual effect involves sequenced timelines, text reveals, layout transitions, or any animation that benefits from GSAP's easing and synchronisation model.
+
+### gsap-scrolltrigger
+Scroll-driven animations using GSAP ScrollTrigger — pinning, scrubbing, snap points, parallax, and horizontal scrolling. Many web-visual-effects recipes are scroll-triggered.
+
+**Use alongside this skill when:** the effect is tied to scroll position, sections need to pin during animation, or the page tells a story as the user scrolls.
+
+### animation-specialist
+Broad motion design expertise: easing theory, spring dynamics, CSS animations, Web Animations API, SVG morphing, and GSAP timelines. Useful when the right animation approach hasn't been decided or when the effect spans multiple techniques.
+
+**Use instead of this skill when:** the user needs help choosing between CSS, GSAP, SVG animation, or p5 for a visual goal — and the answer isn't clearly GPU-accelerated or WebGL-based.
+
+### css-design
+Expert CSS including `@keyframes`, transitions, `animation-timeline`, scroll-driven CSS animations, and `prefers-reduced-motion`. CSS handles glassmorphism, neumorphism, basic parallax, and simple entrance animations without any JavaScript.
+
+**Use instead of this skill when:** the visual effect can be achieved with `backdrop-filter`, CSS transforms, or the native `scroll()` / `view()` animation-timeline — no JavaScript or canvas required.
+
+### physics
+Numerical integration, spring systems, rigid bodies, soft bodies (PBD), and SPH fluids — framed as time-stepped simulation loops. GPU particle systems and physically-based animations benefit from understanding the underlying simulation math.
+
+**Use alongside this skill when:** the particle system needs realistic force-based behaviour (gravity, drag, attraction, collisions) rather than pure procedural noise-driven motion.
+
+### trigonometry
+Sin/cos/atan2, circular motion, oscillation, polar coordinates, and wave functions. Nearly every shader and animation loop in this skill uses trig.
+
+**Use alongside this skill when:** a shader or animation involves wave-based motion, radial patterns, circular orbits, or any periodic behaviour driven by `sin(time)`.
+
+### p5js-creative-coding
+Generative and creative coding using p5.js — 2D canvas drawing, Perlin noise, interactive sketches, and particle systems without a 3D scene graph or WebGL pipeline.
+
+**Use instead of this skill when:** the user wants to prototype a generative or interactive canvas experience quickly without setting up WebGL, Three.js, or a build pipeline.
+
+### svg-graphics
+Scalable SVG graphics, SMIL animation, CSS SVG transforms, path morphing, and accessible diagrams. SVG animations are the right choice when the effect is icon-scale, needs to be inline in HTML, or must work in contexts where canvas/WebGL isn't available.
+
+**Use instead of this skill when:** the animation is an icon, illustration, or diagram that should scale infinitely and doesn't need GPU acceleration.
+
+### frontend-design
+Creative direction and full interface implementation — layout, typography, colour systems, and component design as a unified whole.
+
+**Use before this skill when:** the visual effects need to sit inside a polished web page and the overall design direction (colour palette, typography, layout) hasn't been established yet.

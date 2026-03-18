@@ -1,0 +1,23 @@
+{
+  "skill_name": "physics",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm building a 2D game with bouncing balls and I want to add gravity and bounce off walls. My explicit Euler integration keeps making the balls speed up over time until they fly off screen. How do I fix this and write a stable physics update loop?",
+      "expected_output": "Explains that forward Euler adds energy (unstable for oscillating systems), introduces semi-implicit Euler (update velocity first, then position), provides pseudocode for accumulate-forces → integrate → resolve-collision loop, includes a basic impulse-based wall collision response. Should NOT require a specific language or library.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to simulate cloth — like a hanging flag — using position-based dynamics. Can you walk me through how PBD works and give me the pseudocode for the update loop, distance constraints, and how pinned vertices work?",
+      "expected_output": "Covers the three PBD phases (predict positions, project constraints, derive velocity), provides pseudocode for the main loop, distance constraint projection with inv_mass weighting (w_total = inv_mass_A + inv_mass_B), and shows that pinned vertices have inv_mass = 0 so they receive zero correction. Should mention number of solver iterations as a key quality parameter.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I'm writing a smoothed particle hydrodynamics fluid simulation. How do I compute pressure and viscosity forces between particles, and how do I avoid the O(n²) neighbour search from killing performance?",
+      "expected_output": "Explains the SPH kernel function concept, provides pseudocode for density computation (sum over neighbours weighted by kernel), pressure from Tait equation of state, pressure and viscosity force accumulation using kernel gradient, and spatial hashing grid for O(k) neighbour lookup instead of O(n²) brute force. Should reference the geometry skill for vector operations.",
+      "files": []
+    }
+  ]
+}

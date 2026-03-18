@@ -1,0 +1,23 @@
+{
+  "skill_name": "web-components",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a tooltip web component that shows on hover and focus. It should accept a 'text' attribute for the tooltip content and wrap whatever I put inside it. Make it accessible.",
+      "expected_output": "A custom element (e.g., <tool-tip>) using Shadow DOM with: an aria-describedby tooltip pattern, keyboard support (shows on focus, hides on blur/Escape), CSS-only positioning, a slot for the trigger content, and the 'text' attribute driving the tooltip text. Should include proper ARIA roles.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I need an accordion component — no frameworks, just vanilla JS. Each section should have a header you click to expand/collapse. Only one section open at a time.",
+      "expected_output": "A custom element (e.g., <my-accordion>) that uses slots for content injection. Each section header should be a button with proper ARIA (aria-expanded, aria-controls). Shadow DOM for encapsulation. Keyboard accessible (Enter/Space to toggle). Uses attributeChangedCallback or event listeners to manage open/close state. CSS transitions for smooth expand/collapse.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Build me a star-rating component as a web component. It should work inside a form so I can submit the rating value. Let me style the stars from outside the component.",
+      "expected_output": "A form-associated custom element (static formAssociated = true) using ElementInternals for form participation. Uses attachInternals() and setFormValue(). Exposes CSS parts (::part) for external star styling. Shadow DOM for encapsulation. Keyboard navigable (arrow keys to select rating). ARIA: role='radiogroup' or similar pattern with aria-label. Reflects value as a property and attribute.",
+      "files": []
+    }
+  ]
+}

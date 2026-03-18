@@ -1,6 +1,6 @@
 ---
 name: p5js-creative-coding
-description: Create interactive graphics, animations, and creative coding projects using p5.js. Use this skill when building 2D/3D visualizations, generative art, interactive sketches, animations, games, data visualizations, or any creative coding project that involves drawing shapes, handling user input, working with images, or creating real-time graphics in the browser.
+description: Create interactive graphics, animations, and creative coding projects using p5.js. Use this skill when building 2D/3D visualizations, generative art, interactive sketches, animations, games, data visualizations, or any creative coding project that involves drawing shapes, handling user input, working with images, or creating real-time graphics in the browser. Also triggers on "p5", "p5.js", "Processing", "canvas sketch", "particle system", "noise field", "perlin noise", "generative pattern", "draw with JavaScript", "make it move on the canvas", "interactive art", "visual sketch", "pixel manipulation", "audio-reactive visuals", or any request to build something visual and creative that runs in the browser without a specific framework requirement.
 ---
 
 # p5.js Creative Coding
@@ -1118,3 +1118,46 @@ function draw() {
 | `DEGREES` / `RADIANS` | Angle modes |
 | `CENTER`, `CORNER`, `CORNERS`, `RADIUS` | Draw modes |
 | `CLOSE` | For endShape() |
+
+
+## Related Skills
+
+### trigonometry
+Covers radians, sin/cos/atan2, circular motion, oscillation, spirals, polar coordinates, and spherical geometry. Essential companion for any p5 sketch that moves things in arcs, pulses, orbits, or waves - which is most generative art.
+
+**Use alongside this skill when:** your sketch involves  oscillations, objects orbiting a centre, rotating shapes, or anything moving along a circular or wave-based path.
+
+### geometry
+Euclidean primitives, vectors, raycasting, AABB/sphere collision, closest-point queries, normals, and frustum culling. Useful when a p5 sketch grows into an interactive simulation with hit detection or spatial lookups.
+
+**Use alongside this skill when:** you're building a p5 game that needs collision detection, checking whether the mouse is inside a custom shape, or doing ray-vs-object intersection.
+
+### physics
+Numerical integration, force accumulation, spring systems, rigid bodies, soft bodies (PBD), and SPH fluids - all framed as code-ready simulation loops. p5's `draw()` loop is a natural home for time-stepped simulations.
+
+**Use alongside this skill when:** the sketch simulates gravity, spring forces, cloth, fluid, or any physically-based particle system rather than just decorative motion.
+
+### art-theory
+Translates art movements (Pointillism, Constructivism, Op Art, Abstract Expressionism, Glitch Art, etc.) into language-agnostic algorithmic pseudocode that can be dropped straight into p5.
+
+**Use alongside this skill when:** the user wants to recreate or be inspired by a specific art movement or aesthetic, and needs the underlying algorithm described before writing the p5 code.
+
+### game-math
+Vectors, matrices, coordinate systems, quaternion rotation, camera projection, and kinematics - the full math toolkit for 2D/3D interactive applications.
+
+**Use alongside this skill when:** the sketch uses p5's WEBGL mode, needs a camera rig, requires matrix transforms beyond `rotate()`/`translate()`, or is growing into a mini game-engine.
+
+### animation-specialist
+Broad motion design: easing curves, spring dynamics, CSS animations, canvas animation, SVG morphing, GSAP timelines, and the theory behind choreography.
+
+**Use instead of this skill when:** the user wants animated visuals on a web page but hasn't committed to p5 and might be better served by CSS transitions, the Web Animations API, or a canvas library with a smaller footprint. Use alongside when the p5 sketch has complex sequenced animations that would benefit from easing and timeline thinking.
+
+### web-visual-effects
+GPU-accelerated effects via WebGL/WebGPU shaders, post-processing, and particle systems that push beyond what the 2D Canvas API can achieve.
+
+**Use instead of this skill when:** the visual effect requires custom GLSL/WGSL shaders, compute passes, or a level of GPU control that p5's abstraction layer does not expose. p5's WEBGL mode covers basic 3D; raw WebGL/WebGPU covers everything beyond that.
+
+### frontend-design
+Creative direction and polished interface implementation - typography, colour, layout, and component design as a unified whole.
+
+**Use before this skill when:** the p5 sketch needs to live inside a well-designed web page and the overall layout, colour palette, and UI haven't been established yet.

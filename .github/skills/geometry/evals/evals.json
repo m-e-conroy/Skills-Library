@@ -1,0 +1,23 @@
+{
+  "skill_name": "geometry",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm writing a simple raytracer in JavaScript. I have a ray defined by an origin and direction, and a scene with a few spheres. How do I test if the ray hits any of them and get the nearest hit point?",
+      "expected_output": "Implements ray-sphere intersection using the quadratic discriminant method. Loops over spheres, finds smallest positive t, and computes the hit point. Should handle the case where t is negative (hit behind ray).",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I'm building a top-down 2D game. I need to check if a projectile (moving circle) overlaps any of the rectangular walls stored as AABBs. What's the best approach?",
+      "expected_output": "Explains circle vs AABB overlap test — clamp the circle centre to the AABB bounds to find the closest point, then compare distance to radius. Provides working JavaScript code. May also mention swept tests for fast-moving objects.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "My 3D mesh renderer is drawing backfaces and it's slowing things down. I have the face normals and the camera position. How do I skip faces that are pointing away from the camera before sending them to the GPU?",
+      "expected_output": "Explains backface culling using dot product of the face normal and the camera-to-surface vector. dot(normal, camToSurf) >= 0 means facing away — cull it. Provides clean code example and mentions winding order convention.",
+      "files": []
+    }
+  ]
+}

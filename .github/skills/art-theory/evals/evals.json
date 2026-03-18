@@ -1,0 +1,23 @@
+{
+  "skill_name": "art-theory",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to create a generative piece in the style of De Stijl. Give me a pseudocode algorithm I can implement in any language.",
+      "expected_output": "A language-agnostic pseudocode algorithm implementing recursive binary space partitioning, constrained to a palette of primary colours plus black and white, with grid lines drawn over the result. Should reference the Mondrian/De Stijl philosophy. Should NOT contain JavaScript-specific syntax (no var/let/const, no p5.js calls, no canvas.getContext, etc.).",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want my generative art to feel like Impressionism — short brushstrokes, atmospheric light, colour temperature shifts. How do I algorithmically express that?",
+      "expected_output": "An explanation of the core Impressionist philosophy (transient light, short strokes, optical mixing), followed by pseudocode that: samples colour from a source image or field, applies temperature variation (warm/cool shifts), draws short directional strokes, and accumulates marks. Should cross-reference the trigonometry skill for angle calculations. No JS-specific code.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I'm trying to combine two art movements — Constructivism and Abstract Expressionism — into one procedural piece. Is that possible, and how would I code it?",
+      "expected_output": "Acknowledges the legitimacy of combining movements, explains the conceptual tension (order vs. gesture), and provides layered pseudocode — a Constructivist skeleton (geometric grid/partition) with Abstract Expressionist marks filling each cell (momentum-based strokes, colour by energy). Should demonstrate the composition pattern from the 'Composing Across Movements' section.",
+      "files": []
+    }
+  ]
+}

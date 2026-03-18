@@ -1,6 +1,6 @@
 ---
 name: threejs-3d-webgpu
-description: Create 3D applications and content for the web using Three.js with expert knowledge of WebGPU and shaders. Use this skill when building 3D scenes, working with geometries, materials, lighting, cameras, animations, custom shaders (GLSL/WGSL), post-processing effects, or leveraging WebGPU compute capabilities via TSL (Three Shading Language).
+description: Create 3D applications and content for the web using Three.js with expert knowledge of WebGPU and shaders. Use this skill when building 3D scenes, working with geometries, materials, lighting, cameras, animations, custom shaders (GLSL/WGSL), post-processing effects, or leveraging WebGPU compute capabilities via TSL (Three Shading Language). Also triggers on "three.js", "threejs", "WebGL 3D", "WebGPU", "3D scene", "3D animation", "GLTF model", "3D game", "GLSL shader", "WGSL shader", "TSL", "node material", "OrbitControls", "bloom effect", "instanced mesh", "raycasting 3D", "EffectComposer", "MeshStandardMaterial", or any request to build a 3D web experience.
 ---
 
 # Three.js 3D Web Development
@@ -9,17 +9,6 @@ Three.js is a powerful JavaScript library for creating 3D graphics in the browse
 
 **Documentation**: https://threejs.org/docs/
 **Examples**: https://threejs.org/examples/
-
-## When to Use This Skill
-
-- Creating 3D scenes, objects, and environments for the web
-- Working with WebGPU renderer and compute shaders
-- Writing custom shaders (GLSL for WebGL, WGSL/TSL for WebGPU)
-- Implementing lighting, shadows, and materials
-- Loading 3D models (GLTF, FBX, OBJ)
-- Adding post-processing effects
-- Building interactive 3D experiences
-- Optimizing 3D performance (instancing, LOD, batching)
 
 ## Project Setup
 
@@ -791,3 +780,50 @@ window.addEventListener('click', onMouseClick);
 | `normalLocal` | Vertex normal |
 | `Fn()` | Define custom function |
 | `compute()` | Create compute shader |
+
+## Related Skills
+
+### game-math
+Vectors, matrices, quaternions, coordinate systems, camera projection, and kinematics — the full mathematical toolkit that Three.js uses under the hood. Understanding `Vector3`, `Matrix4`, `Quaternion`, and `Euler` is essential for non-trivial Three.js work.
+
+**Use alongside this skill when:** you need to manually compose transforms, build a custom camera rig, work with frustum math, or understand the math behind something Three.js is doing internally.
+
+### trigonometry
+Radians, sin/cos/atan2, circular motion, oscillations, spherical coordinates, and rotation matrices. Three.js animations and procedural geometry almost always involve trig.
+
+**Use alongside this skill when:** the scene has objects orbiting a point, wave-based vertex displacement, `sin(time)` oscillations, or converting between spherical and Cartesian coordinates for camera placement.
+
+### physics
+Numerical integration, force accumulation, rigid body dynamics, spring systems, soft bodies (PBD), and SPH fluids — framed as time-stepped simulation loops that map naturally onto Three.js `clock.getDelta()` render loops.
+
+**Use alongside this skill when:** the Three.js scene needs physics simulation (falling objects, cloth, fluid, constraints) via Rapier, Cannon-es, or Ammo.js, or when you're implementing custom physics directly.
+
+### animation-specialist
+Broad motion design: easing curves, spring dynamics, keyframe choreography, timeline sequencing, and the math behind smooth motion.
+
+**Use alongside this skill when:** the Three.js scene has complex choreographed animation sequences, character rigs, or needs easing/spring behaviour beyond basic `clock.getDelta()` integration. Use **instead of** this skill when the user needs 2D DOM animation and Three.js isn't involved.
+
+### gsap
+Professional JavaScript animation — tweens, timelines, Flip, Observer, and ScrollTrigger. Three.js + GSAP is a common and powerful pairing: GSAP drives object positions/rotations/uniforms while Three.js renders them.
+
+**Use alongside this skill when:** Three.js camera moves, object reveals, or shader uniform transitions need precise easing, sequencing, or scroll-based control that `requestAnimationFrame` alone doesn't provide.
+
+### gsap-scrolltrigger
+Scroll-driven animation using GSAP ScrollTrigger — pinning, scrubbing, parallax, snap points. Often used to drive Three.js scene state as the user scrolls through a page.
+
+**Use alongside this skill when:** the Three.js canvas is embedded in a scroll-driven storytelling page and scene state (camera position, object visibility, shader uniforms) should be tied to scroll progress.
+
+### web-visual-effects
+GPU-accelerated visual effects at the raw WebGL/WebGPU level — custom GLSL/WGSL shaders, compute pipelines, particle systems, and post-processing without the Three.js abstraction layer.
+
+**Use instead of this skill when:** the effect requires direct WebGPU compute pipeline control that Three.js TSL doesn't expose, or when bundle size matters and Three.js is too heavy for the use case.
+
+### p5js-creative-coding
+Generative and creative coding using p5.js — 2D canvas drawing, Perlin noise, interactive sketches, and particle systems without a 3D scene graph.
+
+**Use instead of this skill when:** the user wants a 2D generative art sketch or interactive canvas experience and doesn't need a 3D scene graph, model loading, or WebGPU compute.
+
+### frontend-design
+Creative direction and polished interface implementation — layout, typography, colour, and component design as a unified whole.
+
+**Use before this skill when:** the Three.js canvas needs to live inside a well-designed web page and the overall layout, colour palette, and UI haven't been established yet.
