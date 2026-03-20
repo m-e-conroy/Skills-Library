@@ -1,0 +1,47 @@
+{
+  "skill_name": "graphology",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to model an airline route network where the same pair of cities can be served by multiple different airlines (so it's a MultiDirectedGraph). Here's what I need in a TypeScript file multigraph-routes.ts:\n\n1. Create a MultiDirectedGraph.\n2. Add 4 city nodes: 'nyc', 'london', 'paris', 'tokyo' — each with a { name, population } attribute.\n3. Add airline routes using addEdgeWithKey so each route has a predictable ID (e.g. 'delta-nyc-london', 'united-nyc-london'). There can be multiple routes between the same city pair. Add these routes:\n   - delta-nyc-london: nyc → london, { airline: 'Delta', duration: 420 }\n   - united-nyc-london: nyc → london, { airline: 'United', duration: 435 }\n   - airfrance-paris-london: paris → london, { airline: 'Air France', duration: 80 }\n   - jal-tokyo-london: tokyo → london, { airline: 'JAL', duration: 720 }\n   - delta-london-paris: london → paris, { airline: 'Delta', duration: 75 }\n4. List all routes from nyc to london using graph.edges('nyc', 'london'), then print each route's airline and duration using getEdgeAttributes.\n5. Update the duration of 'delta-nyc-london' to 415 using setEdgeAttribute.\n6. Verify the edge exists using graph.hasEdge('delta-nyc-london') and log it.\n\nOutput: multigraph-routes.ts",
+      "expected_output": "A multigraph-routes.ts file that: imports MultiDirectedGraph (not MultiGraph or Graph); adds nodes with addNode; uses addEdgeWithKey for all 5 routes with correct source/target/attrs; uses graph.edges('nyc', 'london') to list edges between those nodes; uses getEdgeAttributes to read per-route attrs; uses setEdgeAttribute to update delta-nyc-london duration; uses graph.hasEdge('delta-nyc-london') to verify.",
+      "files": [],
+      "assertions": [
+        { "id": "uses-multidirectedgraph", "description": "Imports and instantiates MultiDirectedGraph (not MultiGraph or DirectedGraph)" },
+        { "id": "add-edge-with-key", "description": "Uses addEdgeWithKey (not addEdge) to create named route edges" },
+        { "id": "edges-between-pair", "description": "Calls graph.edges('nyc', 'london') to list all edges between that pair" },
+        { "id": "get-edge-attributes", "description": "Uses getEdgeAttributes (or getEdgeAttribute) to read route attrs after listing" },
+        { "id": "set-edge-attribute-update", "description": "Uses setEdgeAttribute to update duration on 'delta-nyc-london'" },
+        { "id": "has-edge-check", "description": "Calls graph.hasEdge('delta-nyc-london') to verify the edge exists" }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to use graphology's EventEmitter API to keep a derived data structure in sync with graph mutations. Create a TypeScript file reactive-graph.ts that:\n\n1. Creates a DirectedGraph.\n2. Creates a Map<string, Set<string>> called adjMap that will mirror the graph's out-adjacency: for each node, the Set contains its out-neighbor IDs.\n3. Subscribes to graph events so adjMap stays in sync automatically:\n   - When a node is added → add an empty Set for it in adjMap\n   - When a directed edge is added → add the target to the source's Set in adjMap\n   - When a node is dropped → delete its entry from adjMap AND remove it from all other Sets\n   - When an edge is dropped → remove the target from the source's Set\n4. Imperatively add nodes 'a', 'b', 'c', 'd' and edges a→b, a→c, b→d, c→d.\n5. Drop node 'c' (this should also drop its edges automatically in graphology, triggering the edge drop events).\n6. Log the final adjMap so it's clear which events fired and what the derived state looks like.\n\nUse the correct graphology event names.\n\nOutput: reactive-graph.ts",
+      "expected_output": "A reactive-graph.ts that: uses graph.on() with the correct graphology event names (nodeAdded, edgeAdded, nodeDropped, edgeDropped — payload shapes differ per event); correctly accesses source/target from edge event payloads using the payload's source and target properties; wires up all 4 event handlers before mutations; drops 'c' with graph.dropNode; logs adjMap contents at the end.",
+      "files": [],
+      "assertions": [
+        { "id": "graph-on-node-added", "description": "Calls graph.on('nodeAdded', ...) with correct event name" },
+        { "id": "graph-on-edge-added", "description": "Calls graph.on('edgeAdded', ...) or graph.on('directedEdgeAdded', ...) with correct event name" },
+        { "id": "graph-on-node-dropped", "description": "Calls graph.on('nodeDropped', ...) with correct event name" },
+        { "id": "graph-on-edge-dropped", "description": "Calls graph.on('edgeDropped', ...) or similar with correct event name" },
+        { "id": "adjmap-updated-in-handlers", "description": "adjMap is updated inside event handlers (not just imperatively)" },
+        { "id": "drop-node-c", "description": "Calls graph.dropNode('c') to trigger cascading event handlers" }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need to round-trip a graph through GEXF format and also run ForceAtlas2 layout iteratively (not just assign). Create a TypeScript file gexf-forceatlas2.ts that:\n\n1. Build an UndirectedGraph of 5 nodes: 'a', 'b', 'c', 'd', 'e' with edges a-b, b-c, c-d, d-e, e-a, a-c. Each node gets a { label, weight: number } attribute.\n2. Serialize the graph to a GEXF string using graphology-gexf.\n3. Parse it back from that GEXF string into a NEW graph instance using the GEXF parser. Log the node count of the parsed graph to confirm round-trip.\n4. On the parsed graph, run random layout first (so nodes have x, y), then run ForceAtlas2 iteratively: use forceAtlas2.inferSettings(graph) to get sensible settings, then call the raw forceAtlas2(graph, { iterations: 50, settings: inferredSettings }) to update positions in-place.\n5. After FA2, log each node's final x and y to show positions changed.\n6. Make a structural copy of the graph with all nodes/edges but no position attributes using emptyCopy(), log its node count and edge count.\n\nOutput: gexf-forceatlas2.ts",
+      "expected_output": "A gexf-forceatlas2.ts that: imports write from graphology-gexf to serialize; imports parse (or read) from graphology-gexf to deserialize; builds the graph correctly; calls write(graph) to get GEXF string; calls parse(UndirectedGraph, gexfString) or similar to reconstruct; uses forceAtlas2.inferSettings(parsedGraph) to get settings object; calls the raw forceAtlas2(parsedGraph, { iterations, settings }) function (NOT forceAtlas2.assign); logs x/y after; calls graph.emptyCopy() and logs order/size.",
+      "files": [],
+      "assertions": [
+        { "id": "gexf-write-serialize", "description": "Calls write(graph) or gexf.write(graph) from graphology-gexf to produce GEXF string" },
+        { "id": "gexf-parse-deserialize", "description": "Calls parse(UndirectedGraph, gexfString) or read() from graphology-gexf to reconstruct the graph" },
+        { "id": "forceatlas2-infer-settings", "description": "Calls forceAtlas2.inferSettings(graph) to generate settings object" },
+        { "id": "forceatlas2-raw-call", "description": "Calls raw forceAtlas2(graph, { iterations, settings }) — NOT forceAtlas2.assign()" },
+        { "id": "log-xy-positions", "description": "Logs or reads x and y attributes from nodes after ForceAtlas2 runs" },
+        { "id": "empty-copy", "description": "Calls graph.emptyCopy() and logs order and size of the result" }
+      ]
+    }
+  ]
+}

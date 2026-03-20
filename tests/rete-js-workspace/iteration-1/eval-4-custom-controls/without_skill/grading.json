@@ -1,0 +1,39 @@
+{
+  "eval_id": 4,
+  "variant": "without_skill",
+  "total_score": 4,
+  "max_score": 5,
+  "assertions": [
+    {
+      "id": "slider-stops-propagation",
+      "description": "onPointerDown={(e) => e.stopPropagation()} present in the slider component",
+      "passed": true,
+      "evidence": "onPointerDown={(e) => e.stopPropagation()} present on <input type='range'> inside SliderComponent — noted with correct explanatory comment"
+    },
+    {
+      "id": "customize-control-instanceof",
+      "description": "customize.control checks context.payload instanceof SliderControl",
+      "passed": true,
+      "evidence": "if (context.payload instanceof SliderControl) { return SliderComponent as React.FC<...>; }"
+    },
+    {
+      "id": "fallback-to-classic-control",
+      "description": "returns Presets.classic.Control for ClassicPreset.InputControl instances",
+      "passed": true,
+      "evidence": "if (context.payload instanceof ClassicPreset.InputControl) { return Presets.classic.Control; }"
+    },
+    {
+      "id": "react-plugin-create-root",
+      "description": "{createRoot} passed to ReactPlugin (required for React 19)",
+      "passed": false,
+      "evidence": "const render = new ReactPlugin<Schemes, AreaExtra>(); — no { createRoot } argument; this breaks with React 19 / strict-mode React 18"
+    },
+    {
+      "id": "slider-control-standalone",
+      "description": "SliderControl does NOT extend ClassicPreset.InputControl",
+      "passed": true,
+      "evidence": "class SliderControl extends ClassicPreset.Control — extends the low-level Control base, not InputControl. Acceptable: ClassicPreset.Control provides the required id field."
+    }
+  ],
+  "notes": "Dropped 1 point for missing {createRoot}. The baseline independently knew stopPropagation and instanceof discrimination but consistently forgets the React 19 createRoot requirement — a gap the skill specifically addresses."
+}

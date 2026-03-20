@@ -1,0 +1,49 @@
+{
+  "eval_id": 3,
+  "eval_name": "eval-3-gexf-forceatlas2",
+  "config": "without_skill",
+  "assertions": [
+    {
+      "id": "gexf-write-serialize",
+      "description": "Calls write(graph) or gexf.write(graph) from graphology-gexf to produce GEXF string",
+      "pass": true,
+      "evidence": "import { write, parse } from 'graphology-gexf'; const gexfString = write(graph)"
+    },
+    {
+      "id": "gexf-parse-deserialize",
+      "description": "Calls parse(UndirectedGraph, gexfString) or read() from graphology-gexf to reconstruct the graph",
+      "pass": true,
+      "evidence": "const parsed = parse(UndirectedGraph, gexfString)"
+    },
+    {
+      "id": "forceatlas2-infer-settings",
+      "description": "Calls forceAtlas2.inferSettings(graph) to generate settings object",
+      "pass": true,
+      "evidence": "const inferredSettings = forceAtlas2.inferSettings(parsed)"
+    },
+    {
+      "id": "forceatlas2-raw-call",
+      "description": "Calls raw forceAtlas2(graph, { iterations, settings }) — NOT forceAtlas2.assign()",
+      "pass": false,
+      "evidence": "forceAtlas2.assign(parsed, { iterations: 50, settings: inferredSettings }) — uses .assign() variant, not the raw function. The prompt explicitly required the raw call."
+    },
+    {
+      "id": "log-xy-positions",
+      "description": "Logs or reads x and y attributes from nodes after ForceAtlas2 runs",
+      "pass": true,
+      "evidence": "parsed.forEachNode((node, attrs) => { console.log(x.toFixed(4), y.toFixed(4)) })"
+    },
+    {
+      "id": "empty-copy",
+      "description": "Calls graph.emptyCopy() and logs order and size of the result",
+      "pass": true,
+      "evidence": "const structural = parsed.emptyCopy(); logs structural.order and size"
+    }
+  ],
+  "pass_rate": 0.833,
+  "assertions_passed": 5,
+  "assertions_total": 6,
+  "notable_failures": [
+    "forceatlas2-raw-call: Used forceAtlas2.assign() instead of the raw forceAtlas2() function. The raw call returns a positions map which must be manually applied; .assign() mutates in-place. These are different APIs with different return values."
+  ]
+}

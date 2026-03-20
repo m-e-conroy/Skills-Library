@@ -1,0 +1,30 @@
+{
+  "run_id": "eval-1-with_skill",
+  "assertions": [
+    {
+      "text": "Imports and uses DataflowEngine from rete-engine with editor.use(engine)",
+      "passed": true,
+      "evidence": "Line: `import { DataflowEngine } from 'rete-engine'` and `editor.use(engine)` present. Engine is created and wired before nodes are added."
+    },
+    {
+      "text": "data() method on AddNode reads inputs with double-bracket array access pattern (e.g. inputs.left?.[0]?.[0]) rather than single-bracket",
+      "passed": true,
+      "evidence": "`const left = inputs.left?.[0]?.[0] ?? 0; const right = inputs.right?.[0]?.[0] ?? 0;` — correctly uses double-bracket access matching DataflowEngine's array-of-arrays output shape."
+    },
+    {
+      "text": "ReactPlugin is initialized with { createRoot } argument (required for React 19)",
+      "passed": true,
+      "evidence": "`const render = new ReactPlugin<Schemes, AreaExtra>({ createRoot });` — createRoot is imported and passed."
+    },
+    {
+      "text": "Plugin wiring follows correct order: editor.use(area), area.use(connection), area.use(render)",
+      "passed": true,
+      "evidence": "Order is: editor.use(area) → area.use(connection) → area.use(render) → editor.use(engine). Matches required four-layer order."
+    },
+    {
+      "text": "engine.reset() is called before engine.fetch() to clear cached results",
+      "passed": true,
+      "evidence": "`engine.reset(); return (await engine.fetch(add.id))` — reset is called inside the compute() helper."
+    }
+  ]
+}

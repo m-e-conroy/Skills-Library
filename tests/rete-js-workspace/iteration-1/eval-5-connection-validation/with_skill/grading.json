@@ -1,0 +1,39 @@
+{
+  "eval_id": 5,
+  "variant": "with_skill",
+  "total_score": 5,
+  "max_score": 5,
+  "assertions": [
+    {
+      "id": "uses-add-pipe",
+      "description": "uses editor.addPipe() (not editor.on(), which is Rete v1 API)",
+      "passed": true,
+      "evidence": "editor.addPipe((context) => { ... }) — correct v2 API"
+    },
+    {
+      "id": "intercepts-connectioncreate",
+      "description": "pipe checks context.type === 'connectioncreate'",
+      "passed": true,
+      "evidence": "if (context.type === 'connectioncreate') { ... }"
+    },
+    {
+      "id": "returns-undefined-to-block",
+      "description": "returns undefined (not false or throw) to cancel the connection",
+      "passed": true,
+      "evidence": "return undefined; — with explanatory comment: 'Returning undefined cancels the connectioncreate action entirely.'"
+    },
+    {
+      "id": "uses-editor-get-node",
+      "description": "calls editor.getNode() to get node instances for type checking",
+      "passed": true,
+      "evidence": "const sourceNode = editor.getNode(source); const targetNode = editor.getNode(target);"
+    },
+    {
+      "id": "returns-context-to-allow",
+      "description": "returns context to permit valid connections through",
+      "passed": true,
+      "evidence": "return context; — after the validation checks, and also in the final fallthrough for non-connectioncreate events"
+    }
+  ],
+  "notes": "Perfect score. Pipe semantics (undefined=block, context=allow), correct v2 API, and guard clause for unresolvable nodes all present."
+}

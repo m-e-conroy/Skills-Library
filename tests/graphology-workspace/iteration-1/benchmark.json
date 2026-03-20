@@ -1,0 +1,79 @@
+{
+  "skill_name": "graphology",
+  "iteration": 1,
+  "summary": {
+    "with_skill_total": 15,
+    "with_skill_passed": 15,
+    "with_skill_pass_rate": 1.0,
+    "without_skill_total": 15,
+    "without_skill_passed": 15,
+    "without_skill_pass_rate": 1.0,
+    "delta": 0.0
+  },
+  "observation": "Both configurations score 15/15. Graphology is well-documented enough that the model produces correct API usage without a skill. The skill's value is in qualitative improvements: idiomatic addEdge vs addDirectedEdge, explaining the .assign() rendering pattern, and TypeScript generics cleanliness. No assertion failures to drive iteration — skill may benefit from harder evals covering events, custom graph types, or error-prone multi-graph cases.",
+  "evals": [
+    {
+      "eval_id": 1,
+      "eval_name": "eval-1-social-network",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": [],
+          "qualitative_delta": "Uses addDirectedEdge instead of addEdge — redundant on DirectedGraph but not incorrect."
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "eval-2-dependency-analysis",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": [],
+          "qualitative_delta": "Functionally identical. No explanation of mergeNode vs addNode distinction."
+        }
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "eval-3-sigma-viz",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": [],
+          "qualitative_delta": "Pre-initializes x/y/community/color at addNode time — those values get overwritten by .assign() calls. Noisy but harmless."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "run_id": "eval-2-with_skill",
+  "assertions": [
+    {
+      "text": "AreaExtra type includes ContextMenuExtra in the union",
+      "passed": true,
+      "evidence": "`type AreaExtra = ReactArea2D<Schemes> | ContextMenuExtra | MinimapExtra;` — all three extras included."
+    },
+    {
+      "text": "AreaExtra type includes MinimapExtra in the union",
+      "passed": true,
+      "evidence": "MinimapExtra is included in the AreaExtra union type."
+    },
+    {
+      "text": "render.addPreset(Presets.contextMenu.setup()) is called to register context menu rendering",
+      "passed": true,
+      "evidence": "`render.addPreset(Presets.contextMenu.setup())` called after area.use(contextMenu)."
+    },
+    {
+      "text": "Uses HistoryExtensions.keyboard(history) for keybindings rather than a manual addEventListener",
+      "passed": true,
+      "evidence": "`HistoryExtensions.keyboard(history)` called — uses the official helper from rete-history-plugin."
+    },
+    {
+      "text": "Context menu uses correct nested category format with 'Data' and 'Sink' subcategories",
+      "passed": true,
+      "evidence": "ContextMenuPresets.classic.setup([['Data', [['Filter',...],['Transform',...]]],['Sink',[['Output',...]]]]) — correct nested array format."
+    }
+  ]
+}

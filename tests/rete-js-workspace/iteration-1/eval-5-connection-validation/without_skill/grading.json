@@ -1,0 +1,39 @@
+{
+  "eval_id": 5,
+  "variant": "without_skill",
+  "total_score": 5,
+  "max_score": 5,
+  "assertions": [
+    {
+      "id": "uses-add-pipe",
+      "description": "uses editor.addPipe() (not editor.on(), which is Rete v1 API)",
+      "passed": true,
+      "evidence": "editor.addPipe((context) => { ... }) — correct v2 API"
+    },
+    {
+      "id": "intercepts-connectioncreate",
+      "description": "pipe checks context.type === 'connectioncreate'",
+      "passed": true,
+      "evidence": "if (context.type !== 'connectioncreate') return context; — early return guards the rest correctly"
+    },
+    {
+      "id": "returns-undefined-to-block",
+      "description": "returns undefined (not false or throw) to cancel the connection",
+      "passed": true,
+      "evidence": "return undefined; — comment: 'Returning undefined drops the event, preventing the connection.'"
+    },
+    {
+      "id": "uses-editor-get-node",
+      "description": "calls editor.getNode() to get node instances for type checking",
+      "passed": true,
+      "evidence": "editor.getNode(source) and editor.getNode(target) used to retrieve node instances"
+    },
+    {
+      "id": "returns-context-to-allow",
+      "description": "returns context to permit valid connections through",
+      "passed": true,
+      "evidence": "return context; — after all type-check branches"
+    }
+  ],
+  "notes": "Perfect score — draw with with_skill. Pipe validation semantics (addPipe, undefined=block, context=allow, getNode) are well-documented in the public Rete.js docs. This eval tests an area where the baseline already performs well."
+}

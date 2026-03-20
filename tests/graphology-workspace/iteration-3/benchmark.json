@@ -1,0 +1,50 @@
+{
+  "skill_name": "graphology",
+  "iteration": 3,
+  "summary": {
+    "with_skill_total": 18,
+    "with_skill_passed": 18,
+    "with_skill_pass_rate": 1.0,
+    "without_skill_total": 18,
+    "without_skill_passed": 18,
+    "without_skill_pass_rate": 1.0,
+    "delta": 0.0
+  },
+  "observation": "Both iteration-2 failures are resolved. The skill patches (named-import pitfall, raw forceAtlas2 call) updated the model's output for without_skill. Remaining qualitative delta: without_skill's emptyCopy usage logs 0/0 (empty shell only) while with_skill re-populates domain attrs without position data. The skill's value is primarily in preventing runtime-breaking mistakes (proven by iter 2) and producing idiomatic, well-typed code. Skill is ready to ship.",
+  "patch_validation": {
+    "named-import-pitfall": {
+      "iter2_without_skill": "FAIL — default import broke MultiDirectedGraph",
+      "iter3_without_skill": "PASS — named import used correctly"
+    },
+    "raw-forceatlas2-call": {
+      "iter2_without_skill": "FAIL — used forceAtlas2.assign() instead of raw forceAtlas2()",
+      "iter3_without_skill": "PASS — raw forceAtlas2() call used with positions map applied via updateEachNodeAttributes"
+    }
+  },
+  "evals": [
+    {
+      "eval_id": 1,
+      "eval_name": "eval-1-multigraph",
+      "configurations": [
+        { "config": "with_skill", "pass_rate": 1.0, "assertions_passed": 6, "assertions_total": 6, "notable_failures": [] },
+        { "config": "without_skill", "pass_rate": 1.0, "assertions_passed": 6, "assertions_total": 6, "notable_failures": [] }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "eval-2-events",
+      "configurations": [
+        { "config": "with_skill", "pass_rate": 1.0, "assertions_passed": 6, "assertions_total": 6, "notable_failures": [] },
+        { "config": "without_skill", "pass_rate": 1.0, "assertions_passed": 6, "assertions_total": 6, "notable_failures": [] }
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "eval-3-gexf-forceatlas2",
+      "configurations": [
+        { "config": "with_skill", "pass_rate": 1.0, "assertions_passed": 6, "assertions_total": 6, "notable_failures": [] },
+        { "config": "without_skill", "pass_rate": 1.0, "assertions_passed": 6, "assertions_total": 6, "notable_failures": [] }
+      ]
+    }
+  ]
+}

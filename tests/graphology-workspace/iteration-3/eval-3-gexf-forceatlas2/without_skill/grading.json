@@ -1,0 +1,18 @@
+{
+  "eval_id": 3,
+  "eval_name": "eval-3-gexf-forceatlas2",
+  "config": "without_skill",
+  "assertions": [
+    { "id": "gexf-write-serialize", "pass": true, "evidence": "const gexfString = write(graph)" },
+    { "id": "gexf-parse-deserialize", "pass": true, "evidence": "parse(UndirectedGraph, gexfString)" },
+    { "id": "forceatlas2-infer-settings", "pass": true, "evidence": "forceAtlas2.inferSettings(parsedGraph)" },
+    { "id": "forceatlas2-raw-call", "pass": true, "evidence": "const positions = forceAtlas2(parsedGraph, { iterations: 50, settings: inferredSettings }) — FIXED vs iter 2" },
+    { "id": "log-xy-positions", "pass": true, "evidence": "parsedGraph.forEachNode logging x/y positions" },
+    { "id": "empty-copy", "pass": true, "evidence": "parsedGraph.emptyCopy() called; order and size logged" }
+  ],
+  "pass_rate": 1.0,
+  "assertions_passed": 6,
+  "assertions_total": 6,
+  "notable_failures": [],
+  "qualitative_notes": "FIXED from iter 2 — now uses raw forceAtlas2() call and applies positions via updateEachNodeAttributes. emptyCopy() logs 0/0 (the empty shell) without re-populating domain nodes; with_skill repopulates nodes without x/y. Minor qualitative gap."
+}

@@ -1,0 +1,17 @@
+{
+  "eval_id": 1,
+  "eval_name": "eval-1-multigraph",
+  "config": "with_skill",
+  "assertions": [
+    { "id": "uses-multidirectedgraph", "pass": true, "evidence": "import { MultiDirectedGraph } from 'graphology' — correct named import" },
+    { "id": "add-edge-with-key", "pass": true, "evidence": "graph.addEdgeWithKey for all 5 routes" },
+    { "id": "edges-between-pair", "pass": true, "evidence": "graph.edges('nyc', 'london')" },
+    { "id": "get-edge-attributes", "pass": true, "evidence": "graph.getEdgeAttributes(edgeKey)" },
+    { "id": "set-edge-attribute-update", "pass": true, "evidence": "graph.setEdgeAttribute('delta-nyc-london', 'duration', 415)" },
+    { "id": "has-edge-check", "pass": true, "evidence": "graph.hasEdge('delta-nyc-london')" }
+  ],
+  "pass_rate": 1.0,
+  "assertions_passed": 6,
+  "assertions_total": 6,
+  "notable_failures": []
+}

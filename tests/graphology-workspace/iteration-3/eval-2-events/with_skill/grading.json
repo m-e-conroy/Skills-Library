@@ -1,0 +1,17 @@
+{
+  "eval_id": 2,
+  "eval_name": "eval-2-events",
+  "config": "with_skill",
+  "assertions": [
+    { "id": "graph-on-node-added", "pass": true, "evidence": "graph.on('nodeAdded', ({ key }) => { adjMap.set(key, new Set()); })" },
+    { "id": "graph-on-edge-added", "pass": true, "evidence": "graph.on('edgeAdded', ({ source, target }) => { adjMap.get(source)?.add(target); })" },
+    { "id": "graph-on-node-dropped", "pass": true, "evidence": "graph.on('nodeDropped', ({ key }) => { adjMap.delete(key); ... })" },
+    { "id": "graph-on-edge-dropped", "pass": true, "evidence": "graph.on('edgeDropped', ({ source, target }) => { adjMap.get(source)?.delete(target); })" },
+    { "id": "adjmap-updated-in-handlers", "pass": true, "evidence": "All adjMap mutations in event handlers" },
+    { "id": "drop-node-c", "pass": true, "evidence": "graph.dropNode('c')" }
+  ],
+  "pass_rate": 1.0,
+  "assertions_passed": 6,
+  "assertions_total": 6,
+  "notable_failures": []
+}

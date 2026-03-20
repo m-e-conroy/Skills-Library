@@ -1,0 +1,47 @@
+{
+  "eval_id": 3,
+  "eval_name": "eval-3-gexf-forceatlas2",
+  "config": "with_skill",
+  "assertions": [
+    {
+      "id": "gexf-write-serialize",
+      "description": "Calls write(graph) or gexf.write(graph) from graphology-gexf to produce GEXF string",
+      "pass": true,
+      "evidence": "import { write, parse } from 'graphology-gexf'; const gexfString = write(graph)"
+    },
+    {
+      "id": "gexf-parse-deserialize",
+      "description": "Calls parse(UndirectedGraph, gexfString) or read() from graphology-gexf to reconstruct the graph",
+      "pass": true,
+      "evidence": "const parsed = parse(UndirectedGraph, gexfString)"
+    },
+    {
+      "id": "forceatlas2-infer-settings",
+      "description": "Calls forceAtlas2.inferSettings(graph) to generate settings object",
+      "pass": true,
+      "evidence": "const inferredSettings = forceAtlas2.inferSettings(parsed)"
+    },
+    {
+      "id": "forceatlas2-raw-call",
+      "description": "Calls raw forceAtlas2(graph, { iterations, settings }) — NOT forceAtlas2.assign()",
+      "pass": true,
+      "evidence": "const positions = forceAtlas2(parsed, { iterations: 50, settings: inferredSettings }) — returns positions map, then applies via updateEachNodeAttributes"
+    },
+    {
+      "id": "log-xy-positions",
+      "description": "Logs or reads x and y attributes from nodes after ForceAtlas2 runs",
+      "pass": true,
+      "evidence": "parsed.forEachNode((node, attr) => { console.log(x.toFixed(6), y.toFixed(6)) })"
+    },
+    {
+      "id": "empty-copy",
+      "description": "Calls graph.emptyCopy() and logs order and size of the result",
+      "pass": true,
+      "evidence": "const stripped = parsed.emptyCopy(); ... logs stripped.order and stripped.size"
+    }
+  ],
+  "pass_rate": 1.0,
+  "assertions_passed": 6,
+  "assertions_total": 6,
+  "notable_failures": []
+}

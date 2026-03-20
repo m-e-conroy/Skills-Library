@@ -1,0 +1,37 @@
+{
+  "eval_id": 3,
+  "eval_name": "eval-3-import-export",
+  "prompt": "I'm building a Rete.js node editor and I need to save and load the graph from a database. My nodes are instances of custom classes (NumberNode, AddNode) and they have InputControl values I need to save. What's the right approach for serializing and deserializing the graph including node positions?",
+  "assertions": [
+    {
+      "id": "uses-area-node-views-for-position",
+      "text": "Uses area.nodeViews.get(nodeId)?.position (or .position directly) to capture node canvas positions",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "connection-serialization-has-source-output",
+      "text": "Serialized connections include sourceOutput and targetInput fields (not just source/target)",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "editor-clear-before-import",
+      "text": "editor.clear() is called before re-populating the editor during import",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "node-type-factory-switch",
+      "text": "Import uses a factory function or switch statement to re-create node instances by type name",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "control-values-restored",
+      "text": "InputControl values are restored on re-created nodes using setValue() or equivalent",
+      "passed": null,
+      "evidence": null
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "skill_name": "graphology",
+  "iteration": 2,
+  "summary": {
+    "with_skill_total": 18,
+    "with_skill_passed": 18,
+    "with_skill_pass_rate": 1.0,
+    "without_skill_total": 18,
+    "without_skill_passed": 16,
+    "without_skill_pass_rate": 0.889,
+    "delta": 0.111
+  },
+  "observation": "Harder evals reveal two genuine gaps the skill addresses: (1) named vs default import for MultiGraph subclasses — the model defaults to 'import Foo from graphology' which resolves to the base Graph class and breaks parallel edges; (2) raw forceAtlas2() vs forceAtlas2.assign() — without the skill the model defaults to the .assign() convenience method and misses the raw API. The skill explicitly covers both patterns and both pass with_skill on iteration 2.",
+  "evals": [
+    {
+      "eval_id": 1,
+      "eval_name": "eval-1-multigraph",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 6,
+          "assertions_total": 6,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 0.833,
+          "assertions_passed": 5,
+          "assertions_total": 6,
+          "notable_failures": [
+            "uses-multidirectedgraph: Default import 'import MultiDirectedGraph from graphology' imports the base Graph class (multi:false); parallel nyc→london edges would throw at runtime."
+          ]
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "eval-2-events",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 6,
+          "assertions_total": 6,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 6,
+          "assertions_total": 6,
+          "notable_failures": [],
+          "qualitative_delta": "Uses addDirectedEdge instead of idiomatic addEdge on DirectedGraph. Event names and payload shapes are correct."
+        }
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "eval-3-gexf-forceatlas2",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 6,
+          "assertions_total": 6,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 0.833,
+          "assertions_passed": 5,
+          "assertions_total": 6,
+          "notable_failures": [
+            "forceatlas2-raw-call: Used forceAtlas2.assign() instead of raw forceAtlas2(). These have different return values and different application patterns."
+          ]
+        }
+      ]
+    }
+  ]
+}

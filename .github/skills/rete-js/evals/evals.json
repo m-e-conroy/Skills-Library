@@ -1,0 +1,23 @@
+{
+  "skill_name": "rete-js",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to build a simple node editor in my React app using Rete.js. I need two types of nodes: a 'Number' node that has a numeric input control and one output port, and an 'Add' node that takes two number inputs and produces one output. I want users to be able to drag to connect nodes, and I need to be able to compute the result of the graph when a button is clicked. Show me the full setup.",
+      "expected_output": "Complete TypeScript/React code that: (1) defines NumberNode and AddNode classes extending ClassicPreset.Node, (2) sets up the full editor stack (NodeEditor + AreaPlugin + ConnectionPlugin + ReactPlugin), (3) uses DataflowEngine with data() methods on AddNode to compute values, (4) includes the useRete hook or equivalent React integration, (5) uses correct TypeScript types (GetSchemes, AreaExtra), (6) shows how to trigger engine.fetch() to get the computed result.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I have a Rete.js editor working with basic nodes. Now I want to add: 1) a right-click context menu where users can add 'Filter', 'Transform', and 'Output' nodes from two categories ('Data' and 'Sink'), 2) a minimap in the corner, 3) undo/redo with Ctrl+Z / Ctrl+Y. How do I add all three features?",
+      "expected_output": "Code showing: (1) ContextMenuPlugin setup with nested categories using ContextMenuPresets.classic.setup with subitems, (2) render.addPreset(Presets.contextMenu.setup()) registration, (3) MinimapPlugin + MinimapExtra added to AreaExtra type + render preset, (4) HistoryPlugin with HistoryExtensions.keyboard() for keybindings, (5) all three plugins wired into the area with area.use().",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I'm building a Rete.js node editor and I need to save and load the graph from a database. My nodes are instances of custom classes (NumberNode, AddNode) and they have InputControl values I need to save. What's the right approach for serializing and deserializing the graph including node positions?",
+      "expected_output": "Code showing: (1) an export function that extracts node id, type/constructor name, label, control values, and position from area.nodeViews, (2) an import function that recreates node instances using a factory/switch based on type, restores control values, calls editor.addNode() and area.translate(), (3) connection export/import pattern with source/target/sourceOutput/targetInput fields, (4) explanation that import order can matter for parent-child node relationships.",
+      "files": []
+    }
+  ]
+}

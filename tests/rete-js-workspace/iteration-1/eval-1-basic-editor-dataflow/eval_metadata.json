@@ -1,0 +1,37 @@
+{
+  "eval_id": 1,
+  "eval_name": "eval-1-basic-editor-dataflow",
+  "prompt": "I want to build a simple node editor in my React app using Rete.js. I need two types of nodes: a 'Number' node that has a numeric input control and one output port, and an 'Add' node that takes two number inputs and produces one output. I want users to be able to drag to connect nodes, and I need to be able to compute the result of the graph when a button is clicked. Show me the full setup.",
+  "assertions": [
+    {
+      "id": "uses-dataflow-engine",
+      "text": "Imports and uses DataflowEngine from rete-engine with editor.use(engine)",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "data-method-double-bracket",
+      "text": "data() method on AddNode reads inputs with double-bracket array access pattern (e.g. inputs.left?.[0]?.[0]) rather than single-bracket (inputs.left?.[0])",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "react-plugin-create-root",
+      "text": "ReactPlugin is initialized with { createRoot } argument (required for React 19)",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "plugin-order",
+      "text": "Plugin wiring follows correct order: editor.use(area), area.use(connection), area.use(render)",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "engine-reset-before-fetch",
+      "text": "engine.reset() is called before engine.fetch() to clear cached results",
+      "passed": null,
+      "evidence": null
+    }
+  ]
+}

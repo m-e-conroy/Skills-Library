@@ -1,0 +1,12 @@
+{
+  "id": 5,
+  "name": "eval-5-connection-validation",
+  "prompt": "Using Rete.js v2, create a connection validation system that blocks incompatible socket types. Set up three node types: NumberNode (outputs a 'number' socket), StringNode (accepts a 'string' input), and MixedNode (accepts both). Add a pipe via editor.addPipe() that intercepts 'connectioncreate' events and blocks NumberNode→StringNode connections. Return undefined to block, return context to allow. Output one file: connection-validation.ts",
+  "assertions": [
+    "uses-add-pipe: uses editor.addPipe() (not editor.on(), which is Rete v1 API)",
+    "intercepts-connectioncreate: pipe checks context.type === 'connectioncreate'",
+    "returns-undefined-to-block: returns undefined (not false or throw) to cancel the connection",
+    "uses-editor-get-node: calls editor.getNode() to get node instances for type checking",
+    "returns-context-to-allow: returns context to permit valid connections through"
+  ]
+}

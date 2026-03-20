@@ -1,0 +1,155 @@
+{
+  "skill_name": "rete-js",
+  "iteration": 1,
+  "evals": [
+    {
+      "eval_id": 1,
+      "eval_name": "eval-1-basic-editor-dataflow",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 0.6,
+          "assertions_passed": 3,
+          "assertions_total": 5,
+          "notable_failures": [
+            "data-method-double-bracket: Uses single-bracket input access — will return NaN at runtime",
+            "react-plugin-create-root: Missing { createRoot } arg — breaks with React 19"
+          ]
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "eval-2-plugins-features",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 0.8,
+          "assertions_passed": 4,
+          "assertions_total": 5,
+          "notable_failures": [
+            "uses-history-extensions-keyboard: Uses manual addEventListener instead of HistoryExtensions.keyboard()"
+          ]
+        }
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "eval-3-import-export",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        }
+      ]
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "eval-4-custom-controls",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 0.8,
+          "assertions_passed": 4,
+          "assertions_total": 5,
+          "notable_failures": [
+            "react-plugin-create-root: Missing { createRoot } arg — breaks with React 19"
+          ]
+        }
+      ]
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "eval-5-connection-validation",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        }
+      ]
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "eval-6-vue-renderer",
+      "configurations": [
+        {
+          "config": "with_skill",
+          "pass_rate": 1.0,
+          "assertions_passed": 5,
+          "assertions_total": 5,
+          "notable_failures": []
+        },
+        {
+          "config": "without_skill",
+          "pass_rate": 0.8,
+          "assertions_passed": 4,
+          "assertions_total": 5,
+          "notable_failures": [
+            "uses-use-rete-composable: Used manual onMounted/onBeforeUnmount instead of useRete() composable"
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "with_skill": {
+      "overall_pass_rate": 1.0,
+      "assertions_passed": 30,
+      "assertions_total": 30
+    },
+    "without_skill": {
+      "overall_pass_rate": 0.833,
+      "assertions_passed": 25,
+      "assertions_total": 30
+    },
+    "delta": "+0.167 pass rate improvement with skill",
+    "draws": ["eval-3-import-export", "eval-5-connection-validation"],
+    "recurring_baseline_failures": [
+      "react-plugin-create-root (evals 1, 4) — omits { createRoot } arg, breaks React 19",
+      "double-bracket-inputs (eval 1) — single-bracket access returns array instead of scalar",
+      "history-extensions-keyboard (eval 2) — manual addEventListener vs canonical helper",
+      "uses-use-rete-composable (eval 6) — manual lifecycle vs useRete() composable"
+    ]
+  }
+}

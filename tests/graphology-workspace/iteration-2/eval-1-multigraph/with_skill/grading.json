@@ -1,0 +1,47 @@
+{
+  "eval_id": 1,
+  "eval_name": "eval-1-multigraph",
+  "config": "with_skill",
+  "assertions": [
+    {
+      "id": "uses-multidirectedgraph",
+      "description": "Imports and instantiates MultiDirectedGraph (not MultiGraph or DirectedGraph)",
+      "pass": true,
+      "evidence": "import { MultiDirectedGraph } from 'graphology' — correct named import"
+    },
+    {
+      "id": "add-edge-with-key",
+      "description": "Uses addEdgeWithKey (not addEdge) to create named route edges",
+      "pass": true,
+      "evidence": "graph.addEdgeWithKey('delta-nyc-london', 'nyc', 'london', { ... }) for all 5 routes"
+    },
+    {
+      "id": "edges-between-pair",
+      "description": "Calls graph.edges('nyc', 'london') to list all edges between that pair",
+      "pass": true,
+      "evidence": "const nycToLondon = graph.edges('nyc', 'london')"
+    },
+    {
+      "id": "get-edge-attributes",
+      "description": "Uses getEdgeAttributes (or getEdgeAttribute) to read route attrs after listing",
+      "pass": true,
+      "evidence": "const { airline, duration } = graph.getEdgeAttributes(edgeKey)"
+    },
+    {
+      "id": "set-edge-attribute-update",
+      "description": "Uses setEdgeAttribute to update duration on 'delta-nyc-london'",
+      "pass": true,
+      "evidence": "graph.setEdgeAttribute('delta-nyc-london', 'duration', 415)"
+    },
+    {
+      "id": "has-edge-check",
+      "description": "Calls graph.hasEdge('delta-nyc-london') to verify the edge exists",
+      "pass": true,
+      "evidence": "const exists = graph.hasEdge('delta-nyc-london')"
+    }
+  ],
+  "pass_rate": 1.0,
+  "assertions_passed": 6,
+  "assertions_total": 6,
+  "notable_failures": []
+}

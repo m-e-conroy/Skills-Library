@@ -1,0 +1,42 @@
+{
+  "eval_id": 2,
+  "eval_name": "eval-2-dependency-analysis",
+  "config": "without_skill",
+  "assertions": [
+    {
+      "id": "uses-dfs-from-node",
+      "description": "Imports and calls dfsFromNode from graphology-traversal",
+      "pass": true,
+      "evidence": "import { dfsFromNode } from 'graphology-traversal'; dfsFromNode(graph, 'app', callback)"
+    },
+    {
+      "id": "betweenness-assign",
+      "description": "Calls betweennessCentrality.assign(graph) to write scores onto nodes",
+      "pass": true,
+      "evidence": "betweennessCentrality.assign(graph, { getEdgeWeight: null, normalized: true })"
+    },
+    {
+      "id": "finds-max-betweenness",
+      "description": "Iterates nodes to find the node with the highest betweenness score",
+      "pass": true,
+      "evidence": "graph.forEachNode iteration with topScore comparison"
+    },
+    {
+      "id": "shortest-path-app-to-scheduler",
+      "description": "Finds directed path from app to scheduler",
+      "pass": true,
+      "evidence": "bidirectional(graph, 'app', 'scheduler')"
+    },
+    {
+      "id": "uses-merge-node-or-add-node",
+      "description": "Creates all 7 package nodes correctly",
+      "pass": true,
+      "evidence": "graph.mergeNode(pkg) for all 7 packages"
+    }
+  ],
+  "pass_rate": 1.0,
+  "assertions_passed": 5,
+  "assertions_total": 5,
+  "notable_failures": [],
+  "qualitative_notes": "Functionally identical to with_skill. Adds normalized:true and getEdgeWeight:null options to betweennessCentrality — not wrong, just extra. No mention of why mergeNode is preferred over addNode."
+}

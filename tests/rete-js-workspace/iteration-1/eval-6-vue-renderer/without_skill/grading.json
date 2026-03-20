@@ -1,0 +1,39 @@
+{
+  "eval_id": 6,
+  "variant": "without_skill",
+  "total_score": 4,
+  "max_score": 5,
+  "assertions": [
+    {
+      "id": "uses-vue-plugin",
+      "description": "imports and uses VuePlugin from rete-vue-plugin",
+      "passed": true,
+      "evidence": "import { VuePlugin, Presets as VuePresets, VueArea2D } from 'rete-vue-plugin'; const render = new VuePlugin<Schemes, AreaExtra>();"
+    },
+    {
+      "id": "uses-vue-area-2d",
+      "description": "type AreaExtra = VueArea2D<Schemes> (not ReactArea2D)",
+      "passed": true,
+      "evidence": "type AreaExtra = VueArea2D<Schemes> — present in imports and type alias"
+    },
+    {
+      "id": "uses-use-rete-composable",
+      "description": "NodeEditor.vue uses useRete from rete-vue-plugin, not manual onMounted/onBeforeUnmount",
+      "passed": false,
+      "evidence": "NodeEditor.vue uses onMounted/onBeforeUnmount manually (ref + await createEditor + destroy). Does not import or use the useRete() composable from rete-vue-plugin."
+    },
+    {
+      "id": "no-create-root",
+      "description": "does NOT pass {createRoot} (not needed for Vue renderer)",
+      "passed": true,
+      "evidence": "new VuePlugin<Schemes, AreaExtra>() — no createRoot; correct"
+    },
+    {
+      "id": "correct-plugin-order",
+      "description": "editor.use(area) then area.use(connection) then area.use(render)",
+      "passed": true,
+      "evidence": "editor.use(area); area.use(connection); area.use(render); — correct order"
+    }
+  ],
+  "notes": "Dropped 1 point for missing useRete composable. The baseline wrote functionally equivalent lifecycle management (onMounted/onBeforeUnmount) but skipped the idiomatic Rete+Vue3 integration pattern that the skill explicitly documents."
+}

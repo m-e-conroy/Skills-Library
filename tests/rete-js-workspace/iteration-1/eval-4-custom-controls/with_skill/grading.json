@@ -1,0 +1,39 @@
+{
+  "eval_id": 4,
+  "variant": "with_skill",
+  "total_score": 5,
+  "max_score": 5,
+  "assertions": [
+    {
+      "id": "slider-stops-propagation",
+      "description": "onPointerDown={(e) => e.stopPropagation()} present in the slider component",
+      "passed": true,
+      "evidence": "onPointerDown={(e) => e.stopPropagation()} present on the <input type='range'> element in the inline control renderer"
+    },
+    {
+      "id": "customize-control-instanceof",
+      "description": "customize.control checks context.payload instanceof SliderControl",
+      "passed": true,
+      "evidence": "if (context.payload instanceof SliderControl) { return ... }"
+    },
+    {
+      "id": "fallback-to-classic-control",
+      "description": "returns Presets.classic.Control for ClassicPreset.InputControl instances",
+      "passed": true,
+      "evidence": "if (context.payload instanceof ClassicPreset.InputControl) { return Presets.classic.Control; }"
+    },
+    {
+      "id": "react-plugin-create-root",
+      "description": "{createRoot} passed to ReactPlugin (required for React 19)",
+      "passed": true,
+      "evidence": "const render = new ReactPlugin<Schemes, AreaExtra>({ createRoot });"
+    },
+    {
+      "id": "slider-control-standalone",
+      "description": "SliderControl does NOT extend ClassicPreset.InputControl",
+      "passed": true,
+      "evidence": "class SliderControl { readonly id: string = ... } — no extends clause at all; manually sets id required by Rete's control interface"
+    }
+  ],
+  "notes": "Perfect score. All four pitfalls documented in the skill (stopPropagation, createRoot, instanceof discriminator, standalone class) were correctly applied."
+}

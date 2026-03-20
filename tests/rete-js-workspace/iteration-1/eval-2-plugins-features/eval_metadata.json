@@ -1,0 +1,37 @@
+{
+  "eval_id": 2,
+  "eval_name": "eval-2-plugins-features",
+  "prompt": "I have a Rete.js editor working with basic nodes. Now I want to add: 1) a right-click context menu where users can add 'Filter', 'Transform', and 'Output' nodes from two categories ('Data' and 'Sink'), 2) a minimap in the corner, 3) undo/redo with Ctrl+Z / Ctrl+Y. How do I add all three features?",
+  "assertions": [
+    {
+      "id": "area-extra-has-context-menu-extra",
+      "text": "AreaExtra type includes ContextMenuExtra in the union",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "area-extra-has-minimap-extra",
+      "text": "AreaExtra type includes MinimapExtra in the union",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "render-registers-context-menu-preset",
+      "text": "render.addPreset(Presets.contextMenu.setup()) is called to register context menu rendering",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "uses-history-extensions-keyboard",
+      "text": "Uses HistoryExtensions.keyboard(history) for keybindings rather than a manual addEventListener",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "id": "nested-context-menu-categories",
+      "text": "Context menu uses correct nested category format with 'Data' and 'Sink' subcategories",
+      "passed": null,
+      "evidence": null
+    }
+  ]
+}

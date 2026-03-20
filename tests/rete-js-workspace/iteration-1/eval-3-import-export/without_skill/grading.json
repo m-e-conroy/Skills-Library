@@ -1,0 +1,30 @@
+{
+  "run_id": "eval-3-without_skill",
+  "assertions": [
+    {
+      "text": "Uses area.nodeViews.get(nodeId)?.position to capture node canvas positions",
+      "passed": true,
+      "evidence": "`const view = area.nodeViews.get(node.id); const position = view ? { x: view.position.x, y: view.position.y } : { x: 0, y: 0 }` — correct access pattern, just slightly more verbose."
+    },
+    {
+      "text": "Serialized connections include sourceOutput and targetInput fields",
+      "passed": true,
+      "evidence": "Connection serialization includes `sourceOutput: c.sourceOutput` and `targetInput: c.targetInput` fields."
+    },
+    {
+      "text": "editor.clear() is called before re-populating the editor during import",
+      "passed": true,
+      "evidence": "`await editor.clear()` is the first call in importGraph()."
+    },
+    {
+      "text": "Import uses a factory function or switch statement to re-create node instances by type name",
+      "passed": true,
+      "evidence": "`createNodeFromType(serialized)` factory with switch on serialized.type, including exhaustive never check."
+    },
+    {
+      "text": "InputControl values are restored on re-created nodes using setValue() or equivalent",
+      "passed": true,
+      "evidence": "`control.setValue(savedControl.value as any)` called for non-readonly InputControls."
+    }
+  ]
+}

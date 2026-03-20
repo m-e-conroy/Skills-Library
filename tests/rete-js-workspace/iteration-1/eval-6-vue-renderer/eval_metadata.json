@@ -1,0 +1,12 @@
+{
+  "id": 6,
+  "name": "eval-6-vue-renderer",
+  "prompt": "Set up a Rete.js v2 visual node editor using Vue 3 instead of React. Create:\n1. editor.ts — full plugin stack using VuePlugin from rete-vue-plugin, with VueArea2D<Schemes> as the AreaExtra type, plugin order: editor.use(area) → area.use(connection) → area.use(render), and two node types (NumberNode, AddNode)\n2. NodeEditor.vue — Vue SFC component that mounts the editor using the useRete composable from rete-vue-plugin (NOT onMounted/onBeforeUnmount manually)\nImportant: Vue renderer does NOT need createRoot.",
+  "assertions": [
+    "uses-vue-plugin: imports and uses VuePlugin from rete-vue-plugin",
+    "uses-vue-area-2d: type AreaExtra = VueArea2D<Schemes> (not ReactArea2D)",
+    "uses-use-rete-composable: NodeEditor.vue uses useRete from rete-vue-plugin, not manual onMounted/onBeforeUnmount",
+    "no-create-root: does NOT pass {createRoot} (not needed for Vue renderer)",
+    "correct-plugin-order: editor.use(area) then area.use(connection) then area.use(render)"
+  ]
+}

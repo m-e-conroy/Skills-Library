@@ -1,0 +1,12 @@
+{
+  "id": 4,
+  "name": "eval-4-custom-controls",
+  "prompt": "Create a custom SliderControl class for Rete.js that does NOT extend ClassicPreset.InputControl. It should have min, max, value, and a setValue method. Then:\n1. Create a VolumeNode that uses both a SliderControl (range 0–100, initial 50) and a standard InputControl for a label.\n2. Register a React render preset that uses customize.control to render the SliderControl as an <input type=\"range\"> with onPointerDown stopPropagation, and falls back to the classic preset for ClassicPreset.InputControl.\n3. Wire up the full Rete.js plugin stack (editor, area, connection, render) in the correct order.\nOutput one file: custom-controls.tsx",
+  "assertions": [
+    "slider-stops-propagation: onPointerDown={(e) => e.stopPropagation()} present in the slider component",
+    "customize-control-instanceof: customize.control checks context.payload instanceof SliderControl",
+    "fallback-to-classic-control: returns Presets.classic.Control for ClassicPreset.InputControl instances",
+    "react-plugin-create-root: {createRoot} passed to ReactPlugin (required for React 19)",
+    "slider-control-standalone: SliderControl does NOT extend ClassicPreset.InputControl"
+  ]
+}

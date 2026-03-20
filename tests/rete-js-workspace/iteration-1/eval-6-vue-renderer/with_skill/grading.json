@@ -1,0 +1,39 @@
+{
+  "eval_id": 6,
+  "variant": "with_skill",
+  "total_score": 5,
+  "max_score": 5,
+  "assertions": [
+    {
+      "id": "uses-vue-plugin",
+      "description": "imports and uses VuePlugin from rete-vue-plugin",
+      "passed": true,
+      "evidence": "import { VuePlugin, Presets, VueArea2D } from 'rete-vue-plugin'; const render = new VuePlugin<Schemes, AreaExtra>();"
+    },
+    {
+      "id": "uses-vue-area-2d",
+      "description": "type AreaExtra = VueArea2D<Schemes> (not ReactArea2D)",
+      "passed": true,
+      "evidence": "type AreaExtra = VueArea2D<Schemes> — correct Vue-specific area type used throughout"
+    },
+    {
+      "id": "uses-use-rete-composable",
+      "description": "NodeEditor.vue uses useRete from rete-vue-plugin, not manual onMounted/onBeforeUnmount",
+      "passed": true,
+      "evidence": "import { useRete } from 'rete-vue-plugin'; const [el, editor] = useRete(createEditor); — :ref='el' on container"
+    },
+    {
+      "id": "no-create-root",
+      "description": "does NOT pass {createRoot} (not needed for Vue renderer)",
+      "passed": true,
+      "evidence": "new VuePlugin<Schemes, AreaExtra>() — no createRoot argument, as expected for Vue"
+    },
+    {
+      "id": "correct-plugin-order",
+      "description": "editor.use(area) then area.use(connection) then area.use(render)",
+      "passed": true,
+      "evidence": "editor.use(area); area.use(connection); area.use(render); — all in correct sequence"
+    }
+  ],
+  "notes": "Perfect score. The useRete composable (the idiomatic Vue 3 mount pattern) was applied correctly — a detail the baseline missed."
+}

@@ -1,0 +1,42 @@
+{
+  "eval_id": 1,
+  "eval_name": "eval-1-social-network",
+  "config": "without_skill",
+  "assertions": [
+    {
+      "id": "uses-directed-graph",
+      "description": "Uses DirectedGraph constructor (not default Graph)",
+      "pass": true,
+      "evidence": "const graph = new DirectedGraph<NodeAttr, EdgeAttr>()"
+    },
+    {
+      "id": "pagerank-assign",
+      "description": "Calls pagerank.assign(graph) to write scores onto node attributes",
+      "pass": true,
+      "evidence": "pagerank.assign(graph, { alpha: 0.85 })"
+    },
+    {
+      "id": "shortest-path-eve-to-dave",
+      "description": "Uses bidirectional or dijkstra.bidirectional to find path from eve to dave",
+      "pass": true,
+      "evidence": "bidirectional(graph, 'eve', 'dave')"
+    },
+    {
+      "id": "graph-export-json",
+      "description": "Calls graph.export() and serializes to JSON",
+      "pass": true,
+      "evidence": "const exported = graph.export(); JSON.stringify(exported, null, 2)"
+    },
+    {
+      "id": "node-attributes-name-followercount",
+      "description": "Nodes have both name and followerCount attributes",
+      "pass": true,
+      "evidence": "graph.addNode('alice', { name: 'Alice', followerCount: 820 })"
+    }
+  ],
+  "pass_rate": 1.0,
+  "assertions_passed": 5,
+  "assertions_total": 5,
+  "notable_failures": [],
+  "qualitative_notes": "Uses addDirectedEdge instead of idiomatic addEdge — redundant on DirectedGraph but not incorrect. Otherwise fully correct. Passes alpha option to pagerank which is not needed but harmless."
+}

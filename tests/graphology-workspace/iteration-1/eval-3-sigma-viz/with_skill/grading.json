@@ -1,0 +1,42 @@
+{
+  "eval_id": 3,
+  "eval_name": "eval-3-sigma-viz",
+  "config": "with_skill",
+  "assertions": [
+    {
+      "id": "undirected-graph",
+      "description": "Uses UndirectedGraph constructor (not default mixed Graph)",
+      "pass": true,
+      "evidence": "new UndirectedGraph<NodeAttr>()"
+    },
+    {
+      "id": "random-layout-assign",
+      "description": "Calls random.assign(graph) to write x/y positions onto nodes",
+      "pass": true,
+      "evidence": "random.assign(graph)"
+    },
+    {
+      "id": "louvain-assign",
+      "description": "Calls louvain.assign(graph) to detect communities and write attr",
+      "pass": true,
+      "evidence": "louvain.assign(graph)"
+    },
+    {
+      "id": "color-by-community-attribute",
+      "description": "Reads the 'community' node attribute to assign a color string",
+      "pass": true,
+      "evidence": "COMMUNITY_PALETTE[attr.community ?? -1] ?? '#aaa' inside updateEachNodeAttributes"
+    },
+    {
+      "id": "sigma-constructor-present",
+      "description": "Shows new Sigma(graph, container) constructor call",
+      "pass": true,
+      "evidence": "const renderer = new Sigma(graph, container)"
+    }
+  ],
+  "pass_rate": 1.0,
+  "assertions_passed": 5,
+  "assertions_total": 5,
+  "notable_failures": [],
+  "qualitative_notes": "Cleanly typed with optional x/y/color attrs (set by assign calls). Uses updateEachNodeAttributes for the batch color pass — exactly the pattern the skill recommends. TypeScript generics applied to UndirectedGraph."
+}

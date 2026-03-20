@@ -1,0 +1,49 @@
+{
+  "eval_id": 1,
+  "eval_name": "eval-1-multigraph",
+  "config": "without_skill",
+  "assertions": [
+    {
+      "id": "uses-multidirectedgraph",
+      "description": "Imports and instantiates MultiDirectedGraph (not MultiGraph or DirectedGraph)",
+      "pass": false,
+      "evidence": "import MultiDirectedGraph from 'graphology' — default import resolves to the Graph class, NOT MultiDirectedGraph. new MultiDirectedGraph() creates a plain Graph with multi:false; adding two nyc→london edges would throw at runtime."
+    },
+    {
+      "id": "add-edge-with-key",
+      "description": "Uses addEdgeWithKey (not addEdge) to create named route edges",
+      "pass": true,
+      "evidence": "graph.addEdgeWithKey('delta-nyc-london', 'nyc', 'london', { ... }) for all 5 routes"
+    },
+    {
+      "id": "edges-between-pair",
+      "description": "Calls graph.edges('nyc', 'london') to list all edges between that pair",
+      "pass": true,
+      "evidence": "const nycToLondonRoutes = graph.edges('nyc', 'london')"
+    },
+    {
+      "id": "get-edge-attributes",
+      "description": "Uses getEdgeAttributes (or getEdgeAttribute) to read route attrs after listing",
+      "pass": true,
+      "evidence": "const attrs = graph.getEdgeAttributes(edgeKey)"
+    },
+    {
+      "id": "set-edge-attribute-update",
+      "description": "Uses setEdgeAttribute to update duration on 'delta-nyc-london'",
+      "pass": true,
+      "evidence": "graph.setEdgeAttribute('delta-nyc-london', 'duration', 415)"
+    },
+    {
+      "id": "has-edge-check",
+      "description": "Calls graph.hasEdge('delta-nyc-london') to verify the edge exists",
+      "pass": true,
+      "evidence": "graph.hasEdge('delta-nyc-london')"
+    }
+  ],
+  "pass_rate": 0.833,
+  "assertions_passed": 5,
+  "assertions_total": 6,
+  "notable_failures": [
+    "uses-multidirectedgraph: Default import 'import MultiDirectedGraph from graphology' imports the Graph base class, not MultiDirectedGraph. Code silently creates a plain Graph and will throw when adding parallel edges."
+  ]
+}
